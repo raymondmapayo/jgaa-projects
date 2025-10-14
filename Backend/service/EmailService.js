@@ -1,6 +1,10 @@
 // service/EmailService.js
 const sgMail = require("@sendgrid/mail");
 
+// 🧠 Add these two lines here
+console.log("SENDGRID_API_KEY exists:", !!process.env.SENDGRID_API_KEY);
+console.log("SMTP_EMAIL:", process.env.SMTP_EMAIL);
+
 // Set SendGrid API key with validation
 const sendgridApiKey = process.env.SENDGRID_API_KEY;
 if (!sendgridApiKey) {
@@ -41,11 +45,11 @@ const sendConfirmationEmail = (user) => {
       .send(msg)
       .then(() => {
         console.log("Verification email sent via SendGrid");
-        resolve(true); // Email sent successfully
+        resolve(true);
       })
       .catch((err) => {
         console.error("Error sending email via SendGrid:", err);
-        resolve(false); // Email failed but don't break the registration
+        resolve(false);
       });
   });
 };
