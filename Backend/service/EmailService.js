@@ -16,7 +16,7 @@ if (!smtpEmail) {
 // Function to send the email verification - returns a promise that resolves to boolean
 const sendConfirmationEmail = (user) => {
   return new Promise((resolve) => {
-    const verificationUrl = `https://jgaa-project.vercel.app/verify-email/${user.verification_token}`;
+    const verificationUrl = `https://jgaa-projects.vercel.app/verify-email/${user.verification_token}`;
 
     const msg = {
       from: smtpEmail,

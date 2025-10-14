@@ -19,7 +19,7 @@ const app = express();
 
 // -------------------- CORS --------------------
 const allowedOrigins = [
-  "jgaa-projects.vercel.app", // Vercel frontend
+  "https://jgaa-projects.vercel.app", // Vercel frontend
   "http://localhost:5173", // local dev Vite
   "http://localhost:3000", // local dev CRA
 ];
@@ -1525,7 +1525,7 @@ app.post("/forgot_password", (req, res) => {
       async (err2) => {
         if (err2) return res.status(500).json({ message: "DB update error" });
 
-        const resetUrl = `https://jgaa-project.vercel.app/reset-password/${resetToken}`;
+        const resetUrl = `https://jgaa-projects.vercel.app/reset-password/${resetToken}`;
         try {
           await sendResetEmail(user, resetUrl);
           return res.json({ success: true, message: "Reset email sent!" });
