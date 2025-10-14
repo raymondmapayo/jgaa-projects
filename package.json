@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@nextui-org/react": "^2.6.11",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

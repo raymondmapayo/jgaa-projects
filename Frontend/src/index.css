@@ -1,0 +1,267 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.menu-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes running-cycle {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(100vw);
+  }
+}
+html {
+  font-size: 16px;
+}
+
+.react-calendar {
+  width: 100% !important;
+  border: none !important;
+  font-family: "Inter", sans-serif !important;
+}
+
+.react-calendar__tile--active {
+  background-color: #c3ebfa !important;
+  color: black !important;
+}
+
+.react-calendar__navigation__label__labelText {
+  font-weight: 600;
+}
+
+.dark .react-calendar {
+  background-color: #001f3f !important;
+  color: white !important;
+}
+
+.dark .react-calendar__tile--active {
+  background-color: #004080 !important;
+  color: white !important;
+}
+
+.dark .react-calendar__tile:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.rbc-btn-group:first-child {
+  display: none !important;
+}
+.rbc-toolbar-label {
+  text-align: right !important;
+  padding: 0px 20px !important;
+}
+.rbc-btn-group:last-child {
+  font-size: 13px !important;
+}
+.rbc-btn-group:last-child button {
+  border: none !important;
+  background-color: #f1f0ff !important;
+  margin-left: 2px !important;
+}
+.rbc-toolbar button.rbc-active {
+  background-color: #dbdafe !important;
+  box-shadow: none !important;
+}
+.rbc-time-view {
+  border-color: #eee !important;
+}
+.rbc-time-header {
+  display: none !important;
+}
+.rbc-time-content {
+  border: none !important;
+}
+.rbc-time-gutter .rbc-time-column {
+  font-size: 12px !important;
+}
+.rbc-time-gutter .rbc-time-column .rbc-timeslot-group {
+  padding: 0px 20px !important;
+}
+.rbc-timeslot-group {
+  background-color: #f7fdff !important;
+}
+.rbc-day-slot {
+  font-size: 14px !important;
+}
+.rbc-event {
+  border: none !important;
+  color: black !important;
+  padding: 10px !important;
+  margin: 10px !important;
+  width: 99% !important;
+}
+.rbc-event:nth-child(1) {
+  background-color: #e2f8ff !important;
+}
+.rbc-event:nth-child(2) {
+  background-color: #fefce8 !important;
+}
+.rbc-event:nth-child(3) {
+  background-color: #f2f1ff !important;
+}
+.rbc-event:nth-child(4) {
+  background-color: #fdf2fb !important;
+}
+.rbc-event:nth-child(5) {
+  background-color: #e2f8ff !important;
+}
+.rbc-event:nth-child(6) {
+  background-color: #fefce8 !important;
+}
+.rbc-event:nth-child(7) {
+  background-color: #f2f1ff !important;
+}
+
+.rbc-event:nth-child(8) {
+  background-color: #fdf2fb !important;
+}
+.rbc-event:nth-child(9) {
+  background-color: #fefce8 !important;
+}
+.rbc-event-label {
+  color: gray !important;
+  margin-bottom: 5px;
+}
+.scale-wrapper {
+  transform-origin: top left;
+}
+
+@media (max-width: 1024px) {
+  .scale-wrapper {
+    transform: scale(0.9);
+  }
+}
+
+@media (max-width: 768px) {
+  .scale-wrapper {
+    transform: scale(0.8);
+  }
+}
+
+@media (max-width: 480px) {
+  .scale-wrapper {
+    transform: scale(0.7);
+  }
+}
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out forwards;
+}
+/* Dark mode support for AntD table */
+.dark .ant-table {
+  background-color: #001529 !important;
+  color: #ffffff !important;
+}
+
+.dark .ant-table-thead > tr > th {
+  background-color: #0f172a !important; /* Deep dark */
+  color: #ffffff !important;
+  border-color: #1e293b !important;
+}
+
+.dark .ant-table-tbody > tr > td {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-color: #1e293b !important;
+}
+
+.dark .ant-table-tbody > tr:hover > td {
+  background-color: #1e293b !important;
+}
+
+/* global.css or styled-components */
+.dark .ant-picker-calendar {
+  background-color: #c1c1c8 !important;
+  color: white !important;
+}
+
+.dark .ant-picker-calendar-date-content {
+  color: white !important;
+}
+
+.dark .ant-picker-calendar-full .ant-picker-panel {
+  background: transparent !important;
+}
+
+/* General dark background for select, list, checkbox, spinner */
+.dark .ant-list,
+.dark .ant-spin-dot {
+  background-color: #001f3f !important;
+  color: white !important;
+  border-color: #003366 !important;
+}
+
+/* Separate button styling - FIXED to be normal */
+
+/* List items and input placeholders */
+.dark .ant-list-item,
+.dark .ant-input::placeholder {
+  color: white !important;
+}
+
+/* Checked checkbox */
+.dark .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #1890ff !important;
+  border-color: #f5f6f8 !important;
+}
+
+/* Spinner dots */
+.dark .ant-spin-dot-item {
+  background-color: white !important;
+}
+/* Force Ant Design pagination items to stay in light theme with blue border and text */
+.dark .ant-pagination-item {
+  background-color: #fff !important;
+  border: 1px solid #1677ff !important; /* Blue border */
+}
+
+.dark .ant-pagination-item a {
+  color: #1677ff !important; /* Blue number */
+}
+
+/* No change on hover */
+.dark .ant-pagination-item:hover {
+  background-color: #fff !important;
+  border-color: #1677ff !important;
+}
+
+.dark .ant-pagination-item:hover a {
+  color: #1677ff !important;
+}
+
+/* Active item (same as original Ant Design) */
+.dark .ant-pagination-item-active {
+  background-color: #1677ff !important;
+  border-color: #1677ff !important;
+}
+
+.dark .ant-pagination-item-active a {
+  color: #fff !important;
+}
+/* Remove box, keep blue arrows only in dark mode */
+.dark .ant-pagination-item-link {
+  background: none !important;
+  border: none !important;
+  color: #1677ff !important;
+  box-shadow: none !important;
+}
+
+/* Prevent hover from adding any box or background */
+.dark .ant-pagination-item-link:hover {
+  background: none !important;
+  border: none !important;
+  color: #1677ff !important;
+}
