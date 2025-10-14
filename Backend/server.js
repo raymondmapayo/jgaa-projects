@@ -5623,5 +5623,5 @@ app.get("/", (req, res) => {
 });
 
 server.listen(8081, () => {
-  console.log("Server running on https://jgaa-project-backend.onrender.com");
+  console.log("Server running on https://jgaa-projects.onrender.com");
 });
