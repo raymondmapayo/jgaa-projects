@@ -1382,7 +1382,7 @@ app.post("/check-password", (req, res) => {
 
 // Register route to handle user registration and email sending
 // Register route - FIXED VERSION
-app.post("/registers", async (req, res) => {
+app.post("/register", async (req, res) => {
   const {
     fname,
     lname,
