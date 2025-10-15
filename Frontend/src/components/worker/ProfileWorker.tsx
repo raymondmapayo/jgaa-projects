@@ -10,11 +10,11 @@ const ProfileWorker = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-semibold mb-6 text-gray-800">
+      <h1 className="text-3xl font-semibold mb-6 text-gray-800 dark:text-white">
         My Profile Settings
       </h1>
 
-      <Tabs defaultActiveKey="1">
+      <Tabs defaultActiveKey="1" className="w-full">
         <TabPane tab="Profile" key="1">
           <ProfileSettings user_id={user_id} />
         </TabPane>

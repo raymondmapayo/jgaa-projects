@@ -9,35 +9,53 @@ import InventoryModal from "../WorkerModals/AddSupplyModal";
 import EditInventoryModal from "../WorkerModals/EditSupplyModal";
 import ViewInventoryModal from "../WorkerModals/ViewInventoryModal";
 
-// Styled Components
+// ====================== Styled Components ======================
 const StyledContainer = styled.div`
+  width: 100%;
   background-color: #fff;
   border-radius: 12px;
-  padding: 16px;
+  padding: 24px;
   box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.08);
-  transition: background-color 0.3s;
+  transition: background-color 0.3s ease;
+  margin: 0 auto;
 
   .dark & {
     background-color: #001f3f;
     color: white;
   }
+
+  /* ===== Mobile full-stretch ===== */
+  @media (max-width: 1024px) {
+    border-radius: 0;
+    box-shadow: none;
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    padding: 16px;
+  }
 `;
 
 const StyledTable = styled(Table)`
+  width: 100%;
+  .ant-table {
+    width: 100%;
+  }
+
   .ant-table-thead > tr > th {
     background: #f9fafb;
     font-weight: bold;
     color: #374151;
   }
-  .ant-table {
-    border-radius: 8px;
-  }
+
   tr:hover td {
     background-color: #f9fafb !important;
   }
-  @media (max-width: 768px) {
-    .ant-table {
-      font-size: 13px;
+
+  /* Make table responsive on smaller screens */
+  @media (max-width: 1024px) {
+    font-size: 13px;
+    .ant-table-content {
+      overflow-x: auto;
     }
   }
 `;
@@ -126,19 +144,19 @@ const WorkerManageInventory = () => {
   return (
     <StyledContainer>
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-4 mb-6">
         <div>
           <h2 className="text-lg font-bold">Food Inventory</h2>
-          <p className="text-gray-500">Manage your food inventory</p>
+          <p className="text-gray-500 text-sm">Manage your food inventory</p>
         </div>
       </div>
 
       {/* Search and Filter Section */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Input
           placeholder="Search food"
           prefix={<SearchOutlined />}
-          className="w-1/4 bg-gray-100"
+          className="w-full sm:w-1/4 bg-gray-100 dark:bg-[#1f2937] dark:text-white custom-placeholder"
         />
         <Dropdown
           overlay={
@@ -149,7 +167,10 @@ const WorkerManageInventory = () => {
           }
           trigger={["click"]}
         >
-          <Button icon={<FilterOutlined />} className="flex items-center">
+          <Button
+            icon={<FilterOutlined />}
+            className="w-full sm:w-[170px] px-3 py-1.5 text-center"
+          >
             Sort by Stock
           </Button>
         </Dropdown>

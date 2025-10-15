@@ -7,7 +7,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Dropdown, Input, Menu, Table, Tooltip } from "antd";
 import axios from "axios";
-import dayjs from "dayjs"; // ✅ import dayjs
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import SupplyModal from "../WorkerModals/AddSupplyModal";
@@ -15,35 +15,53 @@ import EditInventoryModal from "../WorkerModals/EditSupplyModal";
 import ViewInventoryModal from "../WorkerModals/ViewInventoryModal";
 import WorkerHistoryInventoryModal from "./WorkerHistoryInventory";
 
-// Styled Components
+// ====================== Styled Components ======================
 const StyledContainer = styled.div`
+  width: 100%;
   background-color: #fff;
   border-radius: 12px;
-  padding: 16px;
+  padding: 24px;
   box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.08);
-  transition: background-color 0.3s;
+  transition: background-color 0.3s ease;
+  margin: 0 auto;
 
   .dark & {
     background-color: #001f3f;
     color: white;
   }
+
+  /* ===== Mobile full-stretch ===== */
+  @media (max-width: 1024px) {
+    border-radius: 0;
+    box-shadow: none;
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    padding: 16px;
+  }
 `;
 
 const StyledTable = styled(Table)`
+  width: 100%;
+  .ant-table {
+    width: 100%;
+  }
+
   .ant-table-thead > tr > th {
     background: #f9fafb;
     font-weight: bold;
     color: #374151;
   }
-  .ant-table {
-    border-radius: 8px;
-  }
+
   tr:hover td {
     background-color: #f9fafb !important;
   }
-  @media (max-width: 768px) {
-    .ant-table {
-      font-size: 13px;
+
+  /* Make table responsive on smaller screens */
+  @media (max-width: 1024px) {
+    font-size: 13px;
+    .ant-table-content {
+      overflow-x: auto;
     }
   }
 `;
@@ -59,7 +77,7 @@ const ActionButton = styled(Button)`
   }
 `;
 
-// ✅ Matches supply_tbl
+// ====================== Interface ======================
 interface SupplyItem {
   supply_id: number;
   inventory_id: number;
@@ -68,10 +86,10 @@ interface SupplyItem {
   stock_in: number;
   unit: string;
   price: string;
-
   created_at: string;
 }
 
+// ====================== Component ======================
 const WorkerSupply = () => {
   const [dataSource, setDataSource] = useState<SupplyItem[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -80,14 +98,15 @@ const WorkerSupply = () => {
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
+
   const apiUrl = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
     const fetchSupply = async () => {
       try {
         const response = await axios.get(`${apiUrl}/get_supply`);
-        console.log("🟢 Backend Response (supply):", response.data);
         if (response.data.success) {
-          setDataSource(response.data.data); // replace old data
+          setDataSource(response.data.data);
         } else {
           console.error("⚠️ Backend returned error:", response.data.message);
         }
@@ -98,7 +117,7 @@ const WorkerSupply = () => {
       }
     };
 
-    fetchSupply(); // fetch only once
+    fetchSupply();
   }, [apiUrl]);
 
   const handleAddSupply = (values: any) => {
@@ -106,28 +125,45 @@ const WorkerSupply = () => {
     setIsModalVisible(false);
   };
 
-  // ✅ Added Created At column with dayjs formatting
   const columns = [
     {
       title: "ID",
       dataIndex: "supply_id",
       key: "supply_id",
-      render: (_text: any, record: any) =>
+      render: (_: any, record: any) =>
         `S${record.supply_id.toString().padStart(3, "0")}`,
     },
-    { title: "Product Name", dataIndex: "product_name", key: "product_name" },
-    { title: "Category", dataIndex: "category", key: "category" },
-
-    { title: "Stock In", dataIndex: "stock_in", key: "stock_in" },
-    { title: "Unit", dataIndex: "unit", key: "unit" },
-    { title: "Price", dataIndex: "price", key: "price" },
-
+    {
+      title: "Product Name",
+      dataIndex: "product_name",
+      key: "product_name",
+    },
+    {
+      title: "Category",
+      dataIndex: "category",
+      key: "category",
+    },
+    {
+      title: "Stock In",
+      dataIndex: "stock_in",
+      key: "stock_in",
+    },
+    {
+      title: "Unit",
+      dataIndex: "unit",
+      key: "unit",
+    },
+    {
+      title: "Price",
+      dataIndex: "price",
+      key: "price",
+    },
     {
       title: "Created At",
       dataIndex: "created_at",
       key: "created_at",
       render: (createdAt: string) =>
-        dayjs(createdAt).format("YYYY-MM-DD h:mm A"), // ✅ format like 2025-09-03 8:10 PM
+        dayjs(createdAt).format("YYYY-MM-DD h:mm A"),
     },
     {
       title: "Action",
@@ -161,25 +197,26 @@ const WorkerSupply = () => {
 
   return (
     <StyledContainer>
-      <div className="flex flex-col gap-4 mb-6">
-        {/* Heading */}
-        <div>
-          <h2 className="text-xl font-bold">Supply</h2>
-          <p className="text-gray-500 text-sm">Manage Supply</p>
+      {/* ===== Header Section ===== */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-xl font-bold">Supply List</h2>
+            <p className="text-gray-500 text-sm">Manage and track supplies</p>
+          </div>
         </div>
 
-        {/* Search + Actions Row */}
+        {/* ===== Search + Action Buttons ===== */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          {/* Left: Search */}
+          {/* Search Bar */}
           <Input
             placeholder="Search supply"
             prefix={<SearchOutlined />}
             className="w-full sm:w-1/4 bg-gray-100 dark:bg-[#1f2937] dark:text-white custom-placeholder"
           />
 
-          {/* Right: Action Buttons */}
+          {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            {/* Add */}
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -189,11 +226,11 @@ const WorkerSupply = () => {
               Add New Supply
             </Button>
 
-            {/* Sort */}
             <Dropdown
               overlay={
                 <Menu>
                   <Menu.Item key="1">Sort by Date</Menu.Item>
+                  <Menu.Item key="2">Sort by Price</Menu.Item>
                 </Menu>
               }
               trigger={["click"]}
@@ -202,30 +239,32 @@ const WorkerSupply = () => {
                 icon={<FilterOutlined />}
                 className="w-full sm:w-[170px] px-3 py-1.5 text-center"
               >
-                Sort by
+                Sort
               </Button>
             </Dropdown>
           </div>
         </div>
       </div>
 
-      {/* Table */}
-      <StyledTable
-        dataSource={dataSource}
-        columns={columns}
-        rowKey="supply_id"
-        pagination={{ pageSize: 4, showSizeChanger: false }}
-        loading={isLoading}
-      />
+      {/* ===== Table Section ===== */}
+      <div className="overflow-x-auto lg:overflow-x-hidden">
+        <StyledTable
+          dataSource={dataSource}
+          columns={columns}
+          rowKey="supply_id"
+          pagination={{ pageSize: 5, showSizeChanger: false }}
+          loading={isLoading}
+          scroll={{ x: true }}
+        />
+      </div>
 
-      {/* Add Supply Modal */}
+      {/* ===== Modals ===== */}
       <SupplyModal
         visible={isModalVisible}
         onFinish={handleAddSupply}
         onClose={() => setIsModalVisible(false)}
       />
 
-      {/* View Supply Modal */}
       <ViewInventoryModal
         visible={viewModalVisible}
         selectedItem={selectedItem}
@@ -235,7 +274,6 @@ const WorkerSupply = () => {
         }}
       />
 
-      {/* Edit Supply Modal */}
       <EditInventoryModal
         visible={editModalVisible}
         selectedItem={selectedItem}
@@ -246,7 +284,6 @@ const WorkerSupply = () => {
         onFinish={() => window.location.reload()}
       />
 
-      {/* History Supply Modal */}
       <WorkerHistoryInventoryModal
         isModalVisible={historyModalVisible}
         setIsModalVisible={setHistoryModalVisible}

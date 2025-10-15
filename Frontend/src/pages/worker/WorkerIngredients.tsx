@@ -39,6 +39,8 @@ const WorkerIngredients: React.FC = () => {
     ingredients: Ingredient[];
   } | null>(null);
 
+  const apiUrl = import.meta.env.VITE_API_URL;
+
   // Fetch menu items
   useEffect(() => {
     axios
@@ -73,153 +75,174 @@ const WorkerIngredients: React.FC = () => {
 
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedItems = filteredItems.slice(startIndex, startIndex + pageSize);
-  const apiUrl = import.meta.env.VITE_API_URL;
+
   const toggleExpand = (menuId: number) => {
     setExpandedMap((prev) => ({ ...prev, [menuId]: !prev[menuId] }));
   };
 
   return (
-    <section className="container mx-auto px-4 pt-6 pb-12">
-      <header className="flex justify-between items-center mb-6">
-        <h1 className="text-4xl font-bold text-orange-500">Ingredients</h1>
-        <div className="flex gap-4">
-          <Search
-            placeholder="Search ingre..."
-            allowClear
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: 250 }}
-          />
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            className="bg-orange-500 hover:!bg-orange-600"
-            onClick={() => setIsModalVisible(true)}
-          >
-            Add Ingredients
-          </Button>
-        </div>
-      </header>
+    <section className="relative -mx-6 sm:mx-0">
+      {/* Remove max-w-7xl and mx-auto so the bg stretches edge-to-edge */}
+      <div className="bg-white dark:bg-[#001f3f] rounded-lg shadow-lg sm:w-full p-6 flex flex-col transition-colors">
+        {/* Header */}
+        <header className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 w-full">
+          {/* Title */}
+          <h1 className="text-3xl sm:text-4xl font-bold text-orange-500 flex-1 text-center sm:text-left">
+            Ingredients
+          </h1>
 
-      <div className="flex flex-wrap justify-between gap-6">
-        {paginatedItems.map((item) => {
-          const recipeList = ingredientsMap[item.menu_id] || [];
-          const isExpanded = expandedMap[item.menu_id] || false;
-
-          return (
-            <div
-              key={item.menu_id}
-              className="bg-[#FFF7EC] border border-gray-200 rounded-lg shadow-lg flex flex-col flex-1 min-w-[28%] max-w-[32%] min-h-[320px]"
+          {/* Search + Button */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto flex-1 sm:flex-none justify-center sm:justify-end">
+            <Search
+              placeholder="Search ingredients..."
+              allowClear
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full sm:w-64"
+            />
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              className="bg-orange-500 hover:!bg-orange-600 w-full sm:w-auto"
+              onClick={() => setIsModalVisible(true)}
             >
-              {/* Image */}
-              <div className="relative w-24 h-24 mx-auto mt-2">
-                <img
-                  src={`${apiUrl}/uploads/images/${item.menu_img}`}
-                  alt={item.item_name}
-                  className="h-24 w-24 object-cover rounded-full border-4 border-orange-500 shadow-lg"
-                />
-              </div>
+              Add Ingredients
+            </Button>
+          </div>
+        </header>
 
-              {/* Content */}
-              <div className="flex flex-col p-3 flex-1">
-                <h2 className="text-base font-semibold text-orange-600 text-center mb-1">
-                  {item.item_name}
-                </h2>
+        {/* Cards Grid */}
+        <div className="flex flex-wrap">
+          {paginatedItems.map((item) => {
+            const recipeList = ingredientsMap[item.menu_id] || [];
+            const isExpanded = expandedMap[item.menu_id] || false;
 
-                <div className="mt-1 text-sm text-gray-600 text-justify">
-                  {item.description}
-                </div>
+            return (
+              <div
+                key={item.menu_id}
+                className="
+              w-full
+              sm:w-1/2
+              lg:w-1/3
+              mb-6
+              px-0 sm:px-3
+              flex flex-col
+            "
+              >
+                <div className="bg-[#FFF7EC] border border-gray-200 rounded-lg shadow-lg flex flex-col h-full w-full">
+                  {/* Image */}
+                  <div className="relative w-24 h-24 mx-auto mt-4">
+                    <img
+                      src={`${apiUrl}/uploads/images/${item.menu_img}`}
+                      alt={item.item_name}
+                      className="h-24 w-24 object-cover rounded-full border-4 border-orange-500 shadow-md"
+                    />
+                  </div>
 
-                {/* See More / Edit row */}
-                <div className="flex justify-between items-center mt-auto pt-2">
-                  {recipeList.length > 0 ? (
-                    <>
-                      <span
-                        onClick={() => toggleExpand(item.menu_id)}
-                        className="text-blue-500 hover:underline cursor-pointer text-sm"
-                      >
-                        {isExpanded ? "See less" : "See ingredients"}
-                      </span>
-                      {/* Show Edit button only when expanded */}
-                      {isExpanded && (
-                        <Button
-                          size="small"
-                          type="default"
-                          className="text-orange-500 border-orange-500 hover:!bg-orange-50"
-                          onClick={() => {
-                            setEditingData({
-                              menu_id: item.menu_id,
-                              item_name: item.item_name,
-                              ingredients: recipeList,
-                            });
-                            setIsEditModalVisible(true);
-                          }}
-                        >
-                          Edit
-                        </Button>
+                  {/* Content */}
+                  <div className="flex flex-col p-4 flex-1">
+                    <h2 className="text-lg font-semibold text-orange-600 text-center mb-1">
+                      {item.item_name}
+                    </h2>
+
+                    <p className="text-sm text-gray-600 dark:text-gray-300 text-justify mb-3">
+                      {item.description}
+                    </p>
+
+                    <div className="flex justify-between items-center mt-auto">
+                      {recipeList.length > 0 && (
+                        <>
+                          <span
+                            onClick={() => toggleExpand(item.menu_id)}
+                            className="text-blue-500 hover:underline cursor-pointer text-sm"
+                          >
+                            {isExpanded ? "See less" : "See ingredients"}
+                          </span>
+
+                          {isExpanded && (
+                            <Button
+                              size="small"
+                              type="default"
+                              className="text-orange-500 border-orange-500 hover:!bg-orange-50"
+                              onClick={() => {
+                                setEditingData({
+                                  menu_id: item.menu_id,
+                                  item_name: item.item_name,
+                                  ingredients: recipeList,
+                                });
+                                setIsEditModalVisible(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          )}
+                        </>
                       )}
-                    </>
-                  ) : null}
+                    </div>
+                  </div>
+
+                  {/* Ingredients List */}
+                  {isExpanded && recipeList.length > 0 && (
+                    <ul className="text-left text-gray-700 dark:text-gray-300 text-sm mt-2 p-4 border-t border-gray-200">
+                      {recipeList.map((ingredient) => (
+                        <li key={ingredient.ingredients_id}>
+                          • {ingredient.ingredients_name} -{" "}
+                          {ingredient.measurement} {ingredient.unit}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
+            );
+          })}
+        </div>
 
-              {/* Ingredients list appears BELOW See more / Edit row */}
-              {isExpanded && recipeList.length > 0 && (
-                <ul className="text-left text-gray-700 text-sm mt-2 p-3 border-t border-gray-200">
-                  {recipeList.map((ingredient) => (
-                    <li key={ingredient.ingredients_id}>
-                      • {ingredient.ingredients_name} - {ingredient.measurement}{" "}
-                      {ingredient.unit}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
-        })}
-      </div>
+        {/* Pagination */}
+        <div className="flex justify-center mt-8 w-full">
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={filteredItems.length}
+            onChange={(page) => setCurrentPage(page)}
+            showSizeChanger={false}
+          />
+        </div>
 
-      <div className="flex justify-center mt-8">
-        <Pagination
-          current={currentPage}
-          pageSize={pageSize}
-          total={filteredItems.length}
-          onChange={(page) => setCurrentPage(page)}
-          showSizeChanger={false}
-        />
-      </div>
+        {/* Add Modal */}
+        <WorkerIngredientsModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          onIngredientAdded={(newIngredients, categoryName) => {
+            const menuItem = menuItems.find(
+              (item) => item.item_name === categoryName
+            );
+            if (!menuItem) return;
 
-      <WorkerIngredientsModal
-        visible={isModalVisible}
-        onClose={() => setIsModalVisible(false)}
-        onIngredientAdded={(newIngredients, categoryName) => {
-          const menuItem = menuItems.find(
-            (item) => item.item_name === categoryName
-          );
-          if (!menuItem) return;
-
-          setIngredientsMap((prev) => ({
-            ...prev,
-            [menuItem.menu_id]: [
-              ...(prev[menuItem.menu_id] || []),
-              ...newIngredients,
-            ],
-          }));
-        }}
-      />
-
-      {editingData && (
-        <WorkerIngredientsEditModal
-          visible={isEditModalVisible}
-          onClose={() => setIsEditModalVisible(false)}
-          ingredientData={editingData}
-          onIngredientsUpdated={(updatedIngredients, menu_id) => {
             setIngredientsMap((prev) => ({
               ...prev,
-              [menu_id]: updatedIngredients, // replace old ingredients with updated ones
+              [menuItem.menu_id]: [
+                ...(prev[menuItem.menu_id] || []),
+                ...newIngredients,
+              ],
             }));
           }}
         />
-      )}
+
+        {/* Edit Modal */}
+        {editingData && (
+          <WorkerIngredientsEditModal
+            visible={isEditModalVisible}
+            onClose={() => setIsEditModalVisible(false)}
+            ingredientData={editingData}
+            onIngredientsUpdated={(updatedIngredients, menu_id) => {
+              setIngredientsMap((prev) => ({
+                ...prev,
+                [menu_id]: updatedIngredients,
+              }));
+            }}
+          />
+        )}
+      </div>
     </section>
   );
 };

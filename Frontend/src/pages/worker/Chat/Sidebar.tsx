@@ -7,6 +7,7 @@ type SidebarProps = {
   onSelectUser: (user: any) => void;
 };
 const apiUrl = import.meta.env.VITE_API_URL;
+
 const Sidebar = ({
   admins,
   clients,
@@ -14,9 +15,9 @@ const Sidebar = ({
   onSelectUser,
 }: SidebarProps) => {
   return (
-    <div className="flex flex-col pb-12 bg-white border-r shadow-md rounded-lg">
+    <div className="flex flex-col h-full w-full bg-white border-r shadow-md md:rounded-lg">
       {/* Header */}
-      <div className="bg-white z-10 p-4 border-b rounded-t-lg">
+      <div className="bg-white z-10 p-4 border-b md:rounded-t-lg">
         <h2 className="text-lg font-bold mb-4">Workers</h2>
         <div className="relative">
           <input

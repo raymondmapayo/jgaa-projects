@@ -9,6 +9,7 @@ import {
   Spin,
 } from "antd";
 import axios from "axios";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { CiMenuFries } from "react-icons/ci";
 import { FaBell, FaSun } from "react-icons/fa";
@@ -16,7 +17,6 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { useTheme } from "../../contexts/ThemeContext";
 import { logoutworker } from "../../zustand/store/store.provider";
-
 // Define the Notification type
 interface Notification {
   id: number; // For both message_id or announcement_id
@@ -197,7 +197,6 @@ const WorkerHeader = ({ onMenuToggle }: { onMenuToggle: () => void }) => {
       </Menu.Item>
     </Menu>
   );
-
   const notificationMenu = (
     <List
       dataSource={notifications}
@@ -214,40 +213,37 @@ const WorkerHeader = ({ onMenuToggle }: { onMenuToggle: () => void }) => {
               />
             }
             title={
-              <span className="text-black dark:text-blue-100 font-medium">
-                {item.title || "Message"}
-              </span>
-            }
-            description={
-              <div>
-                <p className="text-gray-600 dark:text-gray-300">
-                  {item.description}
-                </p>
+              <div className="flex items-center gap-2">
+                <span className="text-black dark:text-blue-100 font-medium">
+                  {item.title || "Message"}
+                </span>
                 <span className="text-xs text-gray-400 dark:text-gray-500">
-                  {item.time}
+                  {dayjs(item.time).format("YYYY-MM-DD h:mm A")}
                 </span>
               </div>
+            }
+            description={
+              <p className="text-gray-600 dark:text-gray-300">
+                {item.description}
+              </p>
             }
           />
         </List.Item>
       )}
       footer={
-        <div className="flex justify-center ">
+        <div className="flex justify-center">
           <Button type="link" className="text-black dark:text-blue-100">
             View all notifications
           </Button>
         </div>
       }
       style={{
-        width: 300,
         maxHeight: 430,
         overflowY: "auto",
-        backgroundColor: "white",
       }}
-      className="shadow-lg dark:bg-[#0f172a] dark:text-white"
+      className="w-72 sm:w-80 md:w-96 shadow-lg bg-white dark:bg-[#0f172a] dark:text-white"
     />
   );
-
   return (
     <StyledHeader>
       {/* Menu Button for toggling Sidebar */}

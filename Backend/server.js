@@ -12,9 +12,10 @@ const bcrypt = require("bcryptjs");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+dotenv.config();
 const { sendConfirmationEmail } = require("./service/EmailService");
 const sgMail = require("@sendgrid/mail");
-dotenv.config();
+
 const app = express();
 
 // -------------------- CORS --------------------
