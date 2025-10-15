@@ -2156,12 +2156,9 @@ app.get("/getMessagesWorker/:workerId/:adminId", (req, res) => {
   );
 });
 
-//==========================  CHAT WORKER TO ADMIN AND CLIENT END ============================
-
-//==========================  CHAT WORKER TO CLIENTS  ============================
+//==========================  CHAT WORKER TO ADMIN ============================
 // @ts-ignore
-// Send message endpoint
-app.post("/sendMessageToClients", (req, res) => {
+app.post("/sendMessageToAdmin", (req, res) => {
   const { message, sender_id, recipient_id } = req.body;
 
   if (!message || !sender_id || !recipient_id) {
@@ -2188,8 +2185,58 @@ app.post("/sendMessageToClients", (req, res) => {
         message_id: result.insertId,
       });
 
-      // Emit the message to the client via socket
-      io.to(recipient_id).emit("newMessage", {
+      // Emit the message to the admin via socket (correct room)
+      io.to(`admin_${recipient_id}`).emit("newMessage", {
+        message,
+        sender_id,
+        recipient_id,
+        timestamp,
+      });
+
+      // Optional: also emit to the worker so they see their message immediately
+      io.to(`worker_${sender_id}`).emit("newMessage", {
+        message,
+        sender_id,
+        recipient_id,
+        timestamp,
+      });
+    }
+  );
+});
+
+//==========================  CHAT WORKER TO ADMIN AND CLIENT END ============================
+
+//==========================  CHAT WORKER TO CLIENTS  ============================
+// @ts-ignore
+// Send message endpoint
+app.post("/sendMessageToClients", (req, res) => {
+  const { message, sender_id, recipient_id } = req.body;
+
+  if (!message || !sender_id || !recipient_id) {
+    return res
+      .status(400)
+      .json({ error: "Message, sender_id, and recipient_id are required" });
+  }
+
+  const timestamp = new Date();
+
+  db.query(
+    "INSERT INTO message_tbl (message, sender_id, receiver_id, timestamp, is_read, status) VALUES (?, ?, ?, ?, ?, 'active')",
+    [message, sender_id, recipient_id, timestamp, false],
+    (err, result) => {
+      if (err) {
+        console.error("Failed to send message:", err.message);
+        return res.status(500).json({ error: "Failed to send message" });
+      }
+
+      console.log(`Message sent successfully with ID: ${result.insertId}`);
+      res.status(200).json({
+        message: "Message sent successfully!",
+        message_id: result.insertId,
+      });
+
+      // Emit the message to the client via socket (correct room)
+      io.to(`client_${recipient_id}`).emit("newMessage", {
         message,
         sender_id,
         recipient_id,

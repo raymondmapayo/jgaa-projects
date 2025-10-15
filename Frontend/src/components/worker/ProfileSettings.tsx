@@ -68,10 +68,9 @@ const ProfileSettings = ({ user_id }: ProfileSettingsProps) => {
     else formData.append("profile_pic", userData.profile_pic);
 
     try {
-      const response = await axios.put(
-        `${apiUrl}/update_user/${userData.user_id}`,
-        formData
-      );
+      // No need to assign to a variable if you don't use it
+      await axios.put(`${apiUrl}/update_user/${userData.user_id}`, formData);
+
       notification.success({
         message: "Changes Saved Successfully",
         description: "Your changes have been saved successfully.",
