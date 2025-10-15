@@ -4,10 +4,11 @@ import { FaShoppingBag } from "react-icons/fa";
 import { useParams } from "react-router-dom";
 
 import { addToCart } from "../../zustand/store/store.provider";
-import Favourites from "./Favourites"; // ✅ import Favourites
+import Favourites from "./Favourites";
 import ProductInfo from "./ProductInfo";
+
 interface MenuItem {
-  id: number; // mapped from menu_id
+  id: number;
   menu_id: number;
   item_name: string;
   menu_img: string;
@@ -26,7 +27,9 @@ const Shop: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const apiUrl = import.meta.env.VITE_API_URL;
-  useEffect(() => {
+
+  // ✅ Fetch menu items
+  const fetchMenuItems = () => {
     fetch(`${apiUrl}/menu_items`)
       .then((res) => res.json())
       .then((data) => {
@@ -34,29 +37,31 @@ const Shop: React.FC = () => {
           .filter((item: any) => item.categories_name === type)
           .map((item: any) => ({
             ...item,
-            id: item.menu_id, // map menu_id to id for UI
+            id: item.menu_id,
           }));
         setMenuItems(filteredItems);
       })
-      .catch((err) => console.error(err));
-  }, [type]);
+      .catch((err) => console.error("Error fetching menu items:", err));
+  };
 
   useEffect(() => {
+    fetchMenuItems();
+  }, [type]);
+
+  // ✅ Fetch favorites once
+  useEffect(() => {
     const user_id = sessionStorage.getItem("user_id");
-    if (!user_id) return; // Stop if user not logged in
+    if (!user_id) return;
 
     fetch(`${apiUrl}/get_user_favorites/${user_id}`)
       .then((res) => res.json())
-      .then((data: number[]) => {
-        setFavorites(data); // data is an array of menu_ids already favorited
-      })
+      .then((data: number[]) => setFavorites(data))
       .catch((err) => console.error("Error fetching user favorites:", err));
   }, []);
 
-  // Toggle favorite and insert/remove from DB
+  // ✅ Toggle favorite
   const toggleFavorite = (menu_id: number) => {
     const user_id = sessionStorage.getItem("user_id");
-    // ✅ Use notification instead of alert
     if (!user_id) {
       notification.warning({
         message: "Please Login First",
@@ -75,14 +80,12 @@ const Shop: React.FC = () => {
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          // Update local state
           setFavorites((prev) =>
             data.action === "added"
               ? [...prev, menu_id]
               : prev.filter((id) => id !== menu_id)
           );
 
-          // Show notification
           notification.success({
             message:
               data.action === "added"
@@ -95,9 +98,10 @@ const Shop: React.FC = () => {
           });
         }
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error("Error toggling favourite:", err));
   };
 
+  // ✅ Handle view menu
   const handleViewMenuClick = (item: MenuItem) => {
     setSelectedItem(item);
     setModalVisible(true);
@@ -125,23 +129,23 @@ const Shop: React.FC = () => {
               key={item.id}
               className="bg-[#fff7ec] cursor-pointer border border-gray-200 rounded-lg shadow-lg overflow-hidden relative p-6 text-center flex flex-col"
             >
-              {/* Favourites */}
+              {/* ❤️ Favourites */}
               <Favourites
                 menuId={item.id}
                 isFavorited={favorites.includes(item.id)}
                 onToggleFavorite={toggleFavorite}
               />
 
-              {/* Image */}
+              {/* 🖼️ Image (cache-busted for new uploads) */}
               <div className="relative w-32 h-32 mx-auto mt-4">
                 <img
-                  src={`${apiUrl}/uploads/images/${item.menu_img}`}
+                  src={`${apiUrl}/uploads/images/${item.menu_img}?v=${item.menu_id}`}
                   alt={item.item_name}
                   className="h-32 w-32 object-cover rounded-full border-4 border-orange-500 shadow-lg"
                 />
               </div>
 
-              {/* Content */}
+              {/* 📝 Content */}
               <div className="mt-4 flex-grow flex flex-col justify-between">
                 <div>
                   <h2 className="font-core text-xl font-semibold text-orange-600">
@@ -150,12 +154,12 @@ const Shop: React.FC = () => {
                   <p className="text-sm text-gray-600 mt-2 line-clamp-3 text-justify">
                     {item.description}
                   </p>
-                  <p className=" text-lg  text-gray-800 mt-4 text-left">
+                  <p className="text-lg text-gray-800 mt-4 text-left">
                     ₱{item.price}
                   </p>
                 </div>
 
-                {/* Buttons */}
+                {/* ⚡ Buttons */}
                 <div className="mt-4 flex items-center gap-4">
                   <button
                     onClick={() => handleViewMenuClick(item)}
@@ -181,15 +185,19 @@ const Shop: React.FC = () => {
         </div>
       )}
 
-      {/* Modal */}
+      {/* 🪟 Modal (forced re-render for new item) */}
       <Modal
+        key={selectedItem?.id || "menu-modal"}
         open={modalVisible}
         onCancel={closeModal}
         footer={null}
         bodyStyle={{ padding: "20px" }}
         width={800}
+        destroyOnClose
       >
-        {selectedItem && <ProductInfo item={selectedItem} />}
+        {selectedItem && (
+          <ProductInfo key={selectedItem.id} item={selectedItem} />
+        )}
       </Modal>
     </section>
   );
