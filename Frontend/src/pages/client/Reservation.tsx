@@ -2,7 +2,7 @@ import { notification } from "antd";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-
+import { BsCheck2Circle } from "react-icons/bs";
 interface Reservation {
   reservation_id: number;
   status: string;
@@ -235,7 +235,7 @@ const Reservation = () => {
       {/* Flex container for tables and form */}
       <div className="flex flex-wrap md:flex-nowrap gap-12 mt-2">
         {/* Tables Section */}
-        <motion.div className="flex flex-wrap gap-4 flex-1 h-[500px] overflow-y-auto">
+        <motion.div className="flex flex-wrap gap-4 flex-1 h-[480px] overflow-y-auto justify-center">
           {tables.map((table) => {
             const isReserved = reservedTables.includes(table.tableName);
             const isSelected = selectedTables.includes(table.tableName);
@@ -243,27 +243,52 @@ const Reservation = () => {
             return (
               <motion.div
                 key={table.reservation_id}
-                className={`relative flex-1 min-w-[30%] max-w-[45%] border flex justify-center items-center rounded-lg overflow-hidden cursor-pointer transition
+                className={`
+          relative
+          flex justify-center items-center rounded-lg overflow-hidden cursor-pointer transition-all duration-300
+          border flex-auto
+          min-w-[45%] sm:min-w-[30%] md:min-w-[25%] lg:min-w-[30%] xl:min-w-[30%]
+          max-w-[45%] sm:max-w-[30%] md:max-w-[25%] lg:max-w-[30%] xl:max-w-[30%]
           ${
             isReserved
               ? "border-4 border-gray-400 bg-white cursor-not-allowed"
               : isSelected
               ? "border-4 border-green-500 bg-white"
-              : "border border-gray-200 bg-white"
-          }`}
+              : "border-4 border-green-500 bg-white"
+          }
+        `}
                 onClick={() => handleTableClick(table.tableName)}
               >
+                {/* ✅ Icon now visible above image */}
+                {!isReserved && (
+                  <BsCheck2Circle
+                    className={`absolute top-2 left-2 
+    text-[20px] sm:text-[22px] md:text-[24px] lg:text-[26px] xl:text-[28px] 
+    z-10 transition-all duration-300 drop-shadow-sm
+    ${
+      isSelected
+        ? "text-green-600 animate-check-spin drop-shadow-[0_0_3px_rgba(34,197,94,0.8)]"
+        : "text-black drop-shadow-[0_0_3px_rgba(0,0,0,0.10)]"
+    }`}
+                    style={{
+                      transformOrigin: "center",
+                    }}
+                  />
+                )}
+
                 {/* Image fills entire card */}
                 <img
                   src={table.img}
                   alt={`Table ${table.tableName}`}
-                  className={`absolute inset-0 w-full h-full object-cover ${
-                    isReserved
-                      ? "opacity-80" // reserved table slightly dim but orange shows
-                      : isSelected
-                      ? "opacity-80"
-                      : "opacity-100"
-                  }`}
+                  className={`
+            absolute inset-0 object-cover w-full h-full z-0
+            transition-transform duration-300
+            ${
+              isReserved || isSelected
+                ? "opacity-80 scale-95"
+                : "opacity-100 scale-100"
+            }
+          `}
                 />
               </motion.div>
             );
