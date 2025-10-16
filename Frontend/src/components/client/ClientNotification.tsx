@@ -104,7 +104,7 @@ const ClientNotification: React.FC<ClientNotificationProps> = ({
         >
           <span>{item.message}</span>
           <span className="text-xs text-slate-800">
-            {dayjs(item.created_at).format("DD/MM/YYYY, hh:mm A")}
+            {dayjs(item.created_at).format("MM/DD/YYYY, hh:mm A")}
           </span>
         </List.Item>
       )}
