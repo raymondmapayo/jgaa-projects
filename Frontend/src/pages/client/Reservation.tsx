@@ -53,20 +53,56 @@ const Reservation = () => {
     }
   };
 
-  const handleTableClick = (tableId: string) => {
-    if (reservedTables.includes(tableId)) {
+  const handleTableClick = (tableName: string) => {
+    const isReserved = reservedTables.includes(tableName);
+
+    if (isReserved) {
       notification.warning({
         message: "Table Reserved",
-        description: "This table has already been reserved.",
+        description: `Table ${tableName} has already been reserved.`,
+        placement: "topRight",
       });
       return;
     }
 
-    setSelectedTables((prev) =>
-      prev.includes(tableId)
-        ? prev.filter((id) => id !== tableId)
-        : [...prev, tableId]
-    );
+    const isSelected = selectedTables.includes(tableName);
+    let updatedTables;
+
+    if (isSelected) {
+      updatedTables = selectedTables.filter((t) => t !== tableName);
+      setSelectedTables(updatedTables);
+
+      if (updatedTables.length === 0) {
+        notification.info({
+          message: "All Tables Deselected",
+          description: "You deselected all tables.",
+          placement: "topRight",
+        });
+      } else {
+        notification.info({
+          message: "Table Deselected",
+          description: `You deselected table ${tableName}.`,
+          placement: "topRight",
+        });
+      }
+    } else {
+      updatedTables = [...selectedTables, tableName];
+      setSelectedTables(updatedTables);
+
+      if (updatedTables.length === 1) {
+        notification.success({
+          message: "Table Selected",
+          description: `You selected table ${tableName}.`,
+          placement: "topRight",
+        });
+      } else {
+        notification.success({
+          message: "Tables Selected",
+          description: `You selected tables ${updatedTables.join(", ")}.`,
+          placement: "topRight",
+        });
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -244,8 +280,7 @@ const Reservation = () => {
               <motion.div
                 key={table.reservation_id}
                 className={`
-          relative
-          flex justify-center items-center rounded-lg overflow-hidden cursor-pointer transition-all duration-300
+          relative flex justify-center items-center rounded-lg overflow-hidden cursor-pointer transition-all duration-300
           border flex-auto
           min-w-[45%] sm:min-w-[30%] md:min-w-[25%] lg:min-w-[30%] xl:min-w-[30%]
           max-w-[45%] sm:max-w-[30%] md:max-w-[25%] lg:max-w-[30%] xl:max-w-[30%]
@@ -259,24 +294,22 @@ const Reservation = () => {
         `}
                 onClick={() => handleTableClick(table.tableName)}
               >
-                {/* ✅ Icon now visible above image */}
-                {!isReserved && (
-                  <BsCheck2Circle
-                    className={`absolute top-2 left-2 
-    text-[20px] sm:text-[22px] md:text-[24px] lg:text-[26px] xl:text-[28px] 
-    z-10 transition-all duration-300 drop-shadow-sm
-    ${
-      isSelected
-        ? "text-green-600 animate-check-spin drop-shadow-[0_0_3px_rgba(34,197,94,0.8)]"
-        : "text-black drop-shadow-[0_0_3px_rgba(0,0,0,0.10)]"
-    }`}
-                    style={{
-                      transformOrigin: "center",
-                    }}
-                  />
+                {/* ✅ Show the check icon ONLY when selected */}
+                {!isReserved && isSelected && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0, rotate: -90 }}
+                    animate={{ scale: 1.1, opacity: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                    className="absolute top-2 left-2 z-10"
+                  >
+                    <BsCheck2Circle
+                      className="text-green-600 drop-shadow-[0_0_3px_rgba(34,197,94,0.8)]
+                text-[20px] sm:text-[22px] md:text-[24px] lg:text-[26px] xl:text-[28px]"
+                    />
+                  </motion.div>
                 )}
 
-                {/* Image fills entire card */}
+                {/* Image fills the card */}
                 <img
                   src={table.img}
                   alt={`Table ${table.tableName}`}
