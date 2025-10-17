@@ -2680,7 +2680,10 @@ app.post("/most_reserve", (req, res) => {
     return res.status(400).json({ error: "Missing table_id" });
   }
 
-  const now = new Date().toISOString();
+  // Convert JS Date to MySQL datetime format
+  const now = new Date();
+  const mysqlNow = now.toISOString().slice(0, 19).replace("T", " ");
+  // Result: "YYYY-MM-DD HH:MM:SS"
 
   const sql = `
     INSERT INTO most_reserve_tbl (table_id, most_reservation, date_created)
@@ -2688,7 +2691,7 @@ app.post("/most_reserve", (req, res) => {
     ON DUPLICATE KEY UPDATE most_reservation = most_reservation + 1, date_created = ?
   `;
 
-  db.query(sql, [table_id, now, now], (err, result) => {
+  db.query(sql, [table_id, mysqlNow, mysqlNow], (err, result) => {
     if (err) {
       console.error("Error updating most_reserve_tbl:", err.sqlMessage || err);
       return res.status(500).json({ error: "Internal Server Error" });
@@ -2697,7 +2700,6 @@ app.post("/most_reserve", (req, res) => {
     res.json({ message: "Most Reserved Table Updated Successfully" });
   });
 });
-
 
 //==========================  RESERVATION END  ============================
 
