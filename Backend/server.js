@@ -2673,7 +2673,6 @@ app.post("/send_reservation_email", (req, res) => {
       return res.status(500).json({ error: "Failed to send email" });
     });
 });
-
 app.post("/most_reserve", (req, res) => {
   const { table_id } = req.body;
 
@@ -2681,60 +2680,24 @@ app.post("/most_reserve", (req, res) => {
     return res.status(400).json({ error: "Missing table_id" });
   }
 
-  // Check if table_id already exists
-  const checkSql = `SELECT * FROM most_reserve_tbl WHERE table_id = ?`;
+  const now = new Date().toISOString();
 
-  db.query(checkSql, [table_id], (err, result) => {
+  const sql = `
+    INSERT INTO most_reserve_tbl (table_id, most_reservation, date_created)
+    VALUES (?, 1, ?)
+    ON DUPLICATE KEY UPDATE most_reservation = most_reservation + 1, date_created = ?
+  `;
+
+  db.query(sql, [table_id, now, now], (err, result) => {
     if (err) {
-      console.error(
-        "Error checking existing most_reserve:",
-        err.sqlMessage || err
-      );
+      console.error("Error updating most_reserve_tbl:", err.sqlMessage || err);
       return res.status(500).json({ error: "Internal Server Error" });
     }
 
-    const now = new Date().toISOString();
-
-    if (result.length > 0) {
-      // Update existing row
-      const updateSql = `
-        UPDATE most_reserve_tbl 
-        SET most_reservation = most_reservation + 1, date_created = ?
-        WHERE table_id = ?
-      `;
-      db.query(updateSql, [now, table_id], (err2, result2) => {
-        if (err2) {
-          console.error(
-            "Error updating most_reserve_tbl:",
-            err2.sqlMessage || err2
-          );
-          return res.status(500).json({ error: "Internal Server Error" });
-        }
-
-        console.log("Most Reserved Table Updated Successfully:", result2);
-        res.json({ message: "Most Reserved Table Updated Successfully" });
-      });
-    } else {
-      // Insert new row
-      const insertSql = `
-        INSERT INTO most_reserve_tbl (table_id, most_reservation, date_created)
-        VALUES (?, ?, ?)
-      `;
-      db.query(insertSql, [table_id, 1, now], (err3, result3) => {
-        if (err3) {
-          console.error(
-            "Error inserting into most_reserve_tbl:",
-            err3.sqlMessage || err3
-          );
-          return res.status(500).json({ error: "Internal Server Error" });
-        }
-
-        console.log("Most Reserved Table Created Successfully:", result3);
-        res.json({ message: "Most Reserved Table Created Successfully" });
-      });
-    }
+    res.json({ message: "Most Reserved Table Updated Successfully" });
   });
 });
+
 
 //==========================  RESERVATION END  ============================
 
