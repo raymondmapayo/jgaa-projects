@@ -3,6 +3,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { BsCheck2Circle } from "react-icons/bs";
+
 interface Reservation {
   reservation_id: number;
   status: string;
@@ -22,13 +23,15 @@ const Reservation = () => {
   const [reservedTables, setReservedTables] = useState<string[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const apiUrl = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
     const storedEmail = sessionStorage.getItem("email");
     const storedFname = sessionStorage.getItem("fname");
     const storedLname = sessionStorage.getItem("lname");
     const storedPhone = sessionStorage.getItem("phone");
+    const storedUserId = sessionStorage.getItem("user_id");
 
-    if (storedEmail) {
+    if (storedEmail && storedUserId) {
       setEmail(storedEmail);
       setFullName(`${storedFname} ${storedLname}`);
       setPhone(storedPhone || "");
@@ -108,7 +111,9 @@ const Reservation = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isAuthenticated) {
+    // ✅ Authentication check
+    const userId = sessionStorage.getItem("user_id");
+    if (!isAuthenticated || !userId) {
       notification.warning({
         message: "Login Required",
         description: "You need to log in before reserving a table.",
@@ -116,13 +121,14 @@ const Reservation = () => {
       return;
     }
 
+    // ✅ Validate all required fields
     if (
       !fullName ||
       !email ||
       !phone ||
       !reservationDate ||
       !reservationTime ||
-      !numOfPeople
+      numOfPeople <= 0
     ) {
       notification.warning({
         message: "Incomplete Details",
@@ -140,6 +146,7 @@ const Reservation = () => {
       return;
     }
 
+    // Prepare reservation data
     const reservationData = {
       full_name: fullName,
       email: email,
@@ -148,32 +155,20 @@ const Reservation = () => {
       reservation_time: reservationTime,
       num_of_people: numOfPeople,
       special_request: notes,
-      table_ids: selectedTables, // ✅ multiple tables
+      table_ids: selectedTables.map(Number), // ✅ convert to numbers for DB
     };
 
-    // Retrieve the user_id from sessionStorage
-    const userId = sessionStorage.getItem("user_id");
-
-    if (!userId) {
-      notification.error({
-        message: "Error",
-        description: "User is not logged in. Please log in and try again.",
-      });
-      return;
-    }
+    console.log("Submitting reservation data:", reservationData);
 
     try {
-      // Send the user_id in the URL from sessionStorage
       const reservationResponse = await axios.post(
         `${apiUrl}/add_reservation/${userId}`,
         reservationData,
-        {
-          headers: { "Content-Type": "application/json" },
-        }
+        { headers: { "Content-Type": "application/json" } }
       );
 
+      console.log("Reservation response:", reservationResponse.data);
       const reserveId = reservationResponse.data.reserveId;
-      console.log("Reserve ID received:", reserveId);
 
       notification.success({
         message: "Reservation Added",
@@ -182,14 +177,15 @@ const Reservation = () => {
 
       // Insert into most_reserve_tbl for each table
       for (const tableId of selectedTables) {
-        await axios.post(
-          `${apiUrl}/most_reserve`,
-          {
-            reservation_id: reserveId,
-            table_id: tableId,
-          },
-          { headers: { "Content-Type": "application/json" } }
-        );
+        try {
+          await axios.post(
+            `${apiUrl}/most_reserve`,
+            { reservation_id: reserveId, table_id: tableId },
+            { headers: { "Content-Type": "application/json" } }
+          );
+        } catch (err) {
+          console.error("Error adding to most_reserve_tbl:", err);
+        }
       }
 
       // Insert activity into activity_tbl
@@ -199,28 +195,41 @@ const Reservation = () => {
         reservation_id: reserveId,
       };
 
-      await axios
-        .post(`${apiUrl}/reservation_activity/${userId}`, activityData)
-        .then((response) => {
-          console.log("Activity recorded for reservation", response.data);
-        })
-        .catch((error) => {
+      try {
+        const activityResponse = await axios.post(
+          `${apiUrl}/reservation_activity/${userId}`,
+          activityData,
+          { headers: { "Content-Type": "application/json" } }
+        );
+        console.log("Activity recorded:", activityResponse.data);
+      } catch (error: unknown) {
+        // Narrow error type for TypeScript
+        if (axios.isAxiosError(error)) {
           console.error(
             "Error recording activity:",
             error.response?.data || error.message
           );
-          notification.error({
-            message: "Error",
-            description:
-              "Failed to record reservation activity. Please try again later.",
-          });
+        } else if (error instanceof Error) {
+          console.error("Error recording activity:", error.message);
+        } else {
+          console.error("Error recording activity:", error);
+        }
+
+        notification.error({
+          message: "Error",
+          description:
+            "Failed to record reservation activity. Please try again later.",
         });
+      }
 
       // Update reserved tables and reset selection
       setReservedTables((prev) => [...prev, ...selectedTables]);
       setSelectedTables([]);
-    } catch (error) {
-      console.error("Error adding reservation:", error);
+    } catch (error: any) {
+      console.error(
+        "Error adding reservation:",
+        error.response?.data || error.message
+      );
       notification.error({
         message: "Error",
         description: "Failed to add reservation. Please try again later.",
