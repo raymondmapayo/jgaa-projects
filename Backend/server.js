@@ -2693,6 +2693,8 @@ app.post("/most_reserve", (req, res) => {
       return res.status(500).json({ error: "Internal Server Error" });
     }
 
+    const now = new Date().toISOString();
+
     if (result.length > 0) {
       // Update existing row
       const updateSql = `
@@ -2700,9 +2702,7 @@ app.post("/most_reserve", (req, res) => {
         SET most_reservation = most_reservation + 1, date_created = ?
         WHERE table_id = ?
       `;
-      const updateValues = [new Date().toISOString(), table_id];
-
-      db.query(updateSql, updateValues, (err2, result2) => {
+      db.query(updateSql, [now, table_id], (err2, result2) => {
         if (err2) {
           console.error(
             "Error updating most_reserve_tbl:",
@@ -2720,9 +2720,7 @@ app.post("/most_reserve", (req, res) => {
         INSERT INTO most_reserve_tbl (table_id, most_reservation, date_created)
         VALUES (?, ?, ?)
       `;
-      const insertValues = [table_id, 1, new Date().toISOString()];
-
-      db.query(insertSql, insertValues, (err3, result3) => {
+      db.query(insertSql, [table_id, 1, now], (err3, result3) => {
         if (err3) {
           console.error(
             "Error inserting into most_reserve_tbl:",
