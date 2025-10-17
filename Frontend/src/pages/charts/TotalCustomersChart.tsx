@@ -12,22 +12,23 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import CustomerFilterModal from "../WorkerModals/CustomerFilterModal";
 
 interface CustomerItem {
   name: string; // date from backend
   customers: number;
 }
 
-const TotalCustomersChart = () => {
+interface TotalCustomersChartProps {
+  dates: [Dayjs | null, Dayjs | null]; // ✅ receive from WorkerDashboard
+}
+
+const TotalCustomersChart: React.FC<TotalCustomersChartProps> = ({ dates }) => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState("");
-  const [filterRange, setFilterRange] = useState<[Dayjs | null, Dayjs | null]>([
-    dayjs().startOf("month"),
-    dayjs(),
-  ]);
   const apiUrl = import.meta.env.VITE_API_URL;
+
+  // --- Fetch Data ---
   const fetchData = async (start?: string, end?: string) => {
     setLoading(true);
     try {
@@ -37,7 +38,6 @@ const TotalCustomersChart = () => {
       const result: CustomerItem[] = res.data || [];
 
       const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
       const dayMap: { [key: string]: string } = {
         Sunday: "Sun",
         Monday: "Mon",
@@ -48,9 +48,7 @@ const TotalCustomersChart = () => {
         Saturday: "Sat",
       };
 
-      // Map backend data into weekdays with details
       const mappedData = weekdays.map((shortDay) => {
-        // find items from backend that match the full day name
         const fullDay = Object.keys(dayMap).find(
           (key) => dayMap[key] === shortDay
         )!;
@@ -59,9 +57,9 @@ const TotalCustomersChart = () => {
         );
 
         return {
-          name: shortDay, // short name for X-axis
+          name: shortDay,
           customers:
-            items.length > 0 ? Math.max(...items.map((i) => i.customers)) : 0, // prioritize max
+            items.length > 0 ? Math.max(...items.map((i) => i.customers)) : 0,
           details: items.map((i) => ({
             date: dayjs(i.name).format("MM/DD/YYYY"),
             customers: i.customers,
@@ -71,8 +69,7 @@ const TotalCustomersChart = () => {
 
       setData(mappedData);
 
-      // Descriptive analytics
-      // Descriptive analytics
+      // --- Descriptive Analytics ---
       if (result.length > 0) {
         const sorted = [...result].sort((a, b) => b.customers - a.customers);
         const top = sorted[0];
@@ -100,55 +97,37 @@ const TotalCustomersChart = () => {
 
         desc += `. On average, the restaurant served ${avg.toFixed(
           1
-        )} customer${avg !== 1 ? "s" : ""} per day, showing consistent${
-          top.customers === bottom.customers ? " but low" : ""
-        } activity during the period.`;
+        )} customer${avg !== 1 ? "s" : ""} per day.`;
 
         setDescription(desc);
       } else {
-        setDescription("No customer data available yet.");
+        setDescription("No users data available for the selected date range.");
       }
     } catch (error) {
       console.error(error);
       setData([]);
-      setDescription("No customer data available yet.");
+      setDescription("No users data available for the selected date range.");
     }
     setLoading(false);
   };
 
+  // --- Refetch when date filter changes ---
   useEffect(() => {
-    const [start, end] = filterRange;
+    const [start, end] = dates;
     fetchData(start?.format("YYYY-MM-DD"), end?.format("YYYY-MM-DD"));
-  }, []);
+  }, [dates]); // ✅ updates automatically
 
   return (
     <div className="relative -mx-6 sm:mx-0">
-      <div className="bg-white dark:bg-[#001f3f] rounded-lg shadow-lg  sm:w-full h-full p-6 flex flex-col transition-colors">
-        {/* Header with filter */}
+      <div className="bg-white dark:bg-[#001f3f] rounded-lg shadow-lg sm:w-full h-full p-6 flex flex-col transition-colors">
+        {/* Header */}
         <div className="flex flex-wrap justify-between items-center mb-4 border-b border-dotted pb-2 gap-3">
           <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white flex-1">
             Total Customers
           </h2>
-          <div className="flex-shrink-0">
-            <CustomerFilterModal
-              onApply={(start, end) => {
-                setFilterRange([start, end]);
-                fetchData(
-                  start?.format("YYYY-MM-DD"),
-                  end?.format("YYYY-MM-DD")
-                );
-              }}
-              onReset={() => {
-                const start = dayjs().startOf("month");
-                const end = dayjs();
-                setFilterRange([start, end]);
-                fetchData(start.format("YYYY-MM-DD"), end.format("YYYY-MM-DD"));
-              }}
-            />
-          </div>
         </div>
 
-        {/* Chart */}
+        {/* Chart or No Data */}
         <div className="flex justify-center items-center min-h-[300px]">
           {loading ? (
             <div className="flex gap-2 items-center">
@@ -156,6 +135,10 @@ const TotalCustomersChart = () => {
               <div className="w-4 h-4 rounded-full bg-[#ffc069] animate-bounce [animation-delay:-.2s]" />
               <div className="w-4 h-4 rounded-full bg-[#C3EBFA] animate-bounce [animation-delay:-.4s]" />
             </div>
+          ) : data.every((d) => d.customers === 0) ? (
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+              No customer data available yet.
+            </p>
           ) : (
             <ResponsiveContainer width="100%" height="90%">
               <BarChart
@@ -175,11 +158,11 @@ const TotalCustomersChart = () => {
                   tick={({ x, y, payload }) => (
                     <text
                       x={x}
-                      y={y + 10} // adjust vertical position
+                      y={y + 10}
                       fill="#6b7280"
                       fontSize={12}
                       textAnchor="end"
-                      transform={`rotate(-45, ${x}, ${y + 10})`} // rotate around the tick position
+                      transform={`rotate(-45, ${x}, ${y + 10})`}
                     >
                       {payload.value}
                     </text>
@@ -208,7 +191,7 @@ const TotalCustomersChart = () => {
                         details?: { date: string; customers: number }[];
                       }) => d.name === props.payload.name
                     );
-                    if (!item || !item.details) return ["0", null]; // <-- second argument null
+                    if (!item || !item.details) return ["0", null];
 
                     const detailsText = item.details
                       .map(
@@ -219,7 +202,7 @@ const TotalCustomersChart = () => {
                       )
                       .join("\n");
 
-                    return [detailsText, null]; // <-- second argument null removes "Customers:"
+                    return [detailsText, null];
                   }}
                 />
 
@@ -245,9 +228,8 @@ const TotalCustomersChart = () => {
           )}
         </div>
 
-        {/* Descriptive Analytics */}
+        {/* Description */}
         <div className="mt-4">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1"></h3>
           <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-justify">
             {description}
           </p>

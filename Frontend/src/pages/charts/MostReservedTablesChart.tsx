@@ -12,30 +12,33 @@ import {
 } from "recharts";
 
 import dayjs, { Dayjs } from "dayjs";
-import ReservationFilterModal from "../WorkerModals/ReservationFilterModal";
 
-// ✅ Define type
+// ✅ Define type for chart data
 interface ReservedTable {
   name: string;
   reservations: number;
   details?: { date: string; reservations: number }[];
 }
 
-const MostReservedTablesChart = () => {
+// ✅ Define props for incoming dates
+interface MostReservedTablesChartProps {
+  dates: [Dayjs | null, Dayjs | null];
+}
+
+const MostReservedTablesChart: React.FC<MostReservedTablesChartProps> = ({
+  dates,
+}) => {
   const [data, setData] = useState<ReservedTable[]>([]);
   const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState("");
+
   const allTables = Array.from({ length: 9 }, (_, i) => `Table ${i + 1}`);
   const apiUrl = import.meta.env.VITE_API_URL;
-  const [filterRange, setFilterRange] = useState<[Dayjs | null, Dayjs | null]>([
-    dayjs().startOf("month"),
-    dayjs(),
-  ]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [start, end] = filterRange;
+      const [start, end] = dates;
 
       const res = await axios.get(`${apiUrl}/get_reserved`, {
         params: {
@@ -85,7 +88,6 @@ const MostReservedTablesChart = () => {
           formatted.reduce((sum, item) => sum + item.reservations, 0) /
           formatted.length;
 
-        // Updated description with 📌 pin
         let desc = `📌 ${top.name} was the most reserved with ${
           top.reservations
         } reservation${top.reservations !== 1 ? "s" : ""}, `;
@@ -119,39 +121,22 @@ const MostReservedTablesChart = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    const [start, end] = filterRange;
-    console.log(
-      "Current filter range:",
-      start?.format("YYYY-MM-DD"),
-      end?.format("YYYY-MM-DD")
-    );
-    fetchData();
-  }, [filterRange]);
-
+  // 🔹 Fetch whenever date range changes
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [dates]);
 
   return (
     <div className="relative -mx-6 sm:mx-0">
       <div className="bg-white dark:bg-[#001f3f] rounded-lg shadow-lg sm:w-full h-full p-6 flex flex-col transition-colors">
-        {/* Header with Filter */}
+        {/* Header */}
         <div className="flex flex-wrap justify-between items-center mb-4 border-b border-dotted pb-2 gap-3">
           <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white flex-1">
             Most Reserved
           </h2>
-          <div className="flex-shrink-0">
-            <ReservationFilterModal
-              onApply={(start, end) => {
-                setFilterRange([start, end]);
-              }}
-              onReset={() => {
-                const start = dayjs().startOf("month");
-                const end = dayjs();
-                setFilterRange([start, end]);
-              }}
-            />
+          <div className="flex-shrink-0 text-sm text-gray-500 dark:text-gray-300">
+            {dates[0]?.format("MMM DD, YYYY")} →{" "}
+            {dates[1]?.format("MMM DD, YYYY")}
           </div>
         </div>
 
@@ -179,13 +164,13 @@ const MostReservedTablesChart = () => {
                   dataKey="name"
                   axisLine={false}
                   tickLine={false}
-                  interval={0} // <-- force all labels to show
+                  interval={0}
                   tick={({ x, y, payload }) => {
                     const shortLabel = payload.value.replace("Table", "Tab");
                     return (
                       <text
                         x={x}
-                        y={y + 10} // adjust vertical position
+                        y={y + 10}
                         fill="#6b7280"
                         fontSize={12}
                         textAnchor="end"
@@ -196,7 +181,6 @@ const MostReservedTablesChart = () => {
                     );
                   }}
                 />
-
                 <YAxis
                   axisLine={false}
                   tick={{ fill: "#6b7280", fontSize: 12 }}
@@ -211,7 +195,7 @@ const MostReservedTablesChart = () => {
                     whiteSpace: "pre-line",
                   }}
                   cursor={{ fill: "rgba(250, 140, 22, 0.1)" }}
-                  labelFormatter={(label: string) => label} // Table name
+                  labelFormatter={(label: string) => label}
                   formatter={(_value: number, _name: string, props: any) => {
                     const table = data.find(
                       (d: ReservedTable) => d.name === props.payload.name
@@ -228,10 +212,9 @@ const MostReservedTablesChart = () => {
                       )
                       .join("\n");
 
-                    return [detailsText, null]; // <- second argument null removes the colon
+                    return [detailsText, null];
                   }}
                 />
-
                 <Legend
                   align="center"
                   verticalAlign="top"
@@ -254,9 +237,8 @@ const MostReservedTablesChart = () => {
           )}
         </div>
 
-        {/* Descriptive Analytics */}
+        {/* Description */}
         <div className="mt-4">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1"></h3>
           <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-justify">
             {description}
           </p>
