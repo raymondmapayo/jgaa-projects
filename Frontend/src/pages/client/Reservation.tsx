@@ -111,8 +111,9 @@ const Reservation = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ✅ Authentication check
     const userId = sessionStorage.getItem("user_id");
+
+    // ✅ Authentication check
     if (!isAuthenticated || !userId) {
       notification.warning({
         message: "Login Required",
@@ -121,7 +122,7 @@ const Reservation = () => {
       return;
     }
 
-    // ✅ Validate all required fields
+    // ✅ Validate required fields
     if (
       !fullName ||
       !email ||
@@ -155,12 +156,13 @@ const Reservation = () => {
       reservation_time: reservationTime,
       num_of_people: numOfPeople,
       special_request: notes,
-      table_ids: selectedTables.map(Number), // ✅ convert to numbers for DB
+      table_ids: selectedTables.map(Number),
     };
 
     console.log("Submitting reservation data:", reservationData);
 
     try {
+      // Add reservation
       const reservationResponse = await axios.post(
         `${apiUrl}/add_reservation/${userId}`,
         reservationData,
@@ -175,20 +177,29 @@ const Reservation = () => {
         description: "New reservation has been added successfully!",
       });
 
-      // Insert into most_reserve_tbl for each table
+      // ✅ Add each table to most_reserve_tbl
       for (const tableId of selectedTables) {
         try {
           await axios.post(
             `${apiUrl}/most_reserve`,
-            { reservation_id: reserveId, table_id: tableId },
+            { table_id: tableId }, // only send table_id
             { headers: { "Content-Type": "application/json" } }
           );
-        } catch (err) {
-          console.error("Error adding to most_reserve_tbl:", err);
+        } catch (err: unknown) {
+          if (axios.isAxiosError(err)) {
+            console.error(
+              "Error adding to most_reserve_tbl:",
+              JSON.stringify(err.response?.data, null, 2) || err.message
+            );
+          } else if (err instanceof Error) {
+            console.error("Error adding to most_reserve_tbl:", err.message);
+          } else {
+            console.error("Error adding to most_reserve_tbl:", err);
+          }
         }
       }
 
-      // Insert activity into activity_tbl
+      // ✅ Record reservation activity
       const activityData = {
         user_id: userId,
         activity_date: new Date().toISOString(),
@@ -203,11 +214,10 @@ const Reservation = () => {
         );
         console.log("Activity recorded:", activityResponse.data);
       } catch (error: unknown) {
-        // Narrow error type for TypeScript
         if (axios.isAxiosError(error)) {
           console.error(
             "Error recording activity:",
-            error.response?.data || error.message
+            JSON.stringify(error.response?.data, null, 2) || error.message
           );
         } else if (error instanceof Error) {
           console.error("Error recording activity:", error.message);
@@ -222,14 +232,21 @@ const Reservation = () => {
         });
       }
 
-      // Update reserved tables and reset selection
+      // ✅ Update reserved tables and reset selection
       setReservedTables((prev) => [...prev, ...selectedTables]);
       setSelectedTables([]);
-    } catch (error: any) {
-      console.error(
-        "Error adding reservation:",
-        error.response?.data || error.message
-      );
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error(
+          "Error adding reservation:",
+          JSON.stringify(error.response?.data, null, 2) || error.message
+        );
+      } else if (error instanceof Error) {
+        console.error("Error adding reservation:", error.message);
+      } else {
+        console.error("Error adding reservation:", error);
+      }
+
       notification.error({
         message: "Error",
         description: "Failed to add reservation. Please try again later.",
