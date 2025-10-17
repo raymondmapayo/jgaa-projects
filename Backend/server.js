@@ -2675,64 +2675,63 @@ app.post("/send_reservation_email", (req, res) => {
 });
 
 app.post("/most_reserve", (req, res) => {
-  const { table_id } = req.body; // Only receive table_id now
+  const { table_id } = req.body;
 
-  // Check if the table_id already exists in most_reserve_tbl
-  const checkIfExistsSql = `
-    SELECT * FROM most_reserve_tbl WHERE table_id = ?
-  `;
+  if (!table_id) {
+    return res.status(400).json({ error: "Missing table_id" });
+  }
 
-  db.query(checkIfExistsSql, [table_id], (err, result) => {
+  // Check if table_id already exists
+  const checkSql = `SELECT * FROM most_reserve_tbl WHERE table_id = ?`;
+
+  db.query(checkSql, [table_id], (err, result) => {
     if (err) {
-      console.error("Error checking for existing reservation:", err);
+      console.error(
+        "Error checking existing most_reserve:",
+        err.sqlMessage || err
+      );
       return res.status(500).json({ error: "Internal Server Error" });
     }
 
     if (result.length > 0) {
-      // Entry exists, update most_reservation count
-      const updateMostReserveSql = `
+      // Update existing row
+      const updateSql = `
         UPDATE most_reserve_tbl 
-        SET most_reservation = most_reservation + 1, date_created = ? 
+        SET most_reservation = most_reservation + 1, date_created = ?
         WHERE table_id = ?
       `;
-
       const updateValues = [new Date().toISOString(), table_id];
 
-      db.query(updateMostReserveSql, updateValues, (err, result) => {
-        if (err) {
-          console.error("Error updating most_reserve_tbl:", err);
+      db.query(updateSql, updateValues, (err2, result2) => {
+        if (err2) {
+          console.error(
+            "Error updating most_reserve_tbl:",
+            err2.sqlMessage || err2
+          );
           return res.status(500).json({ error: "Internal Server Error" });
         }
 
-        console.log(
-          "Most Reserved Table Updated Successfully, Result:",
-          result
-        );
+        console.log("Most Reserved Table Updated Successfully:", result2);
         res.json({ message: "Most Reserved Table Updated Successfully" });
       });
     } else {
-      // Entry does not exist, insert new record WITHOUT reservation_id
-      const insertMostReserveSql = `
+      // Insert new row
+      const insertSql = `
         INSERT INTO most_reserve_tbl (table_id, most_reservation, date_created)
         VALUES (?, ?, ?)
       `;
+      const insertValues = [table_id, 1, new Date().toISOString()];
 
-      const insertValues = [
-        table_id,
-        1, // Initial count
-        new Date().toISOString(),
-      ];
-
-      db.query(insertMostReserveSql, insertValues, (err, result) => {
-        if (err) {
-          console.error("Error inserting into most_reserve_tbl:", err);
+      db.query(insertSql, insertValues, (err3, result3) => {
+        if (err3) {
+          console.error(
+            "Error inserting into most_reserve_tbl:",
+            err3.sqlMessage || err3
+          );
           return res.status(500).json({ error: "Internal Server Error" });
         }
 
-        console.log(
-          "Most Reserved Table Created Successfully, Result:",
-          result
-        );
+        console.log("Most Reserved Table Created Successfully:", result3);
         res.json({ message: "Most Reserved Table Created Successfully" });
       });
     }
@@ -3525,7 +3524,7 @@ app.post("/reservation_activity/:user_id", (req, res) => {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  // ✅ Join reservation_tbl with usertable_list to fetch all table_ids
+  // Fetch reservation data with all tables for this reservation
   const query = `
     SELECT 
       r.reservation_id,
@@ -3533,7 +3532,7 @@ app.post("/reservation_activity/:user_id", (req, res) => {
       r.full_name,
       r.reservation_type,
       r.status,
-      GROUP_CONCAT(ut.table_id) AS table_ids  -- collect all tables into one field
+      GROUP_CONCAT(ut.table_id) AS table_ids
     FROM reservation_tbl r
     LEFT JOIN usertable_list ut ON r.reservation_id = ut.reservation_id
     WHERE r.reservation_id = ? AND r.user_id = ?
@@ -3542,7 +3541,7 @@ app.post("/reservation_activity/:user_id", (req, res) => {
 
   db.query(query, [reservation_id, userId], (err, result) => {
     if (err) {
-      console.error("Error fetching reservation data:", err);
+      console.error("Error fetching reservation data:", err.sqlMessage || err);
       return res.status(500).json({ error: "Error fetching reservation data" });
     }
 
@@ -3554,46 +3553,61 @@ app.post("/reservation_activity/:user_id", (req, res) => {
 
     const reservationData = result[0];
 
-    const activityData = {
-      user_id: userId,
-      activity_date,
-      reservation_id: reservationData.reservation_id,
-      full_name: reservationData.full_name,
-      reservation_type: reservationData.reservation_type,
-      status: reservationData.status,
-      table_ids: reservationData.table_ids, // ✅ multiple tables
-    };
+    // Ensure required fields are present
+    if (
+      !reservationData.full_name ||
+      !reservationData.reservation_type ||
+      !reservationData.status ||
+      !reservationData.table_ids
+    ) {
+      console.error("Missing reservation data fields", reservationData);
+      return res.status(400).json({ error: "Missing reservation data fields" });
+    }
 
-    const insertQuery = `
-      INSERT INTO reservation_activity_tbl (user_id, activity_date, full_name, reservation_type, status, table_id, reservation_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
+    // Split tables and insert one row per table for clarity
+    const tables = reservationData.table_ids.split(",");
 
-    db.query(
-      insertQuery,
-      [
-        activityData.user_id,
-        activityData.activity_date,
-        activityData.full_name,
-        activityData.reservation_type,
-        activityData.status,
-        activityData.table_ids, // ✅ insert concatenated table_ids
-        activityData.reservation_id,
-      ],
-      (err, result2) => {
-        if (err) {
-          console.error("Error inserting reservation activity:", err);
-          return res
-            .status(500)
-            .json({ error: "Error inserting reservation activity" });
+    let insertErrors = 0;
+
+    tables.forEach((tableId) => {
+      const insertQuery = `
+        INSERT INTO reservation_activity_tbl 
+        (user_id, activity_date, full_name, reservation_type, status, table_id, reservation_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      db.query(
+        insertQuery,
+        [
+          userId,
+          activity_date,
+          reservationData.full_name,
+          reservationData.reservation_type,
+          reservationData.status,
+          tableId, // VARCHAR supported
+          reservation_id,
+        ],
+        (err2) => {
+          if (err2) {
+            insertErrors++;
+            console.error(
+              "Error inserting reservation activity:",
+              err2.sqlMessage || err2
+            );
+          }
         }
+      );
+    });
 
-        res.status(200).json({
-          message: "Reservation activity added successfully",
-          activity_id: result2.insertId,
-        });
-      }
-    );
+    if (insertErrors > 0) {
+      return res
+        .status(500)
+        .json({ error: "Error inserting some reservation activities" });
+    }
+
+    res.status(200).json({
+      message: "Reservation activity added successfully",
+    });
   });
 });
 
