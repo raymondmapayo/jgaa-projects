@@ -128,11 +128,11 @@ const upload = multer({
 
 // -------------------- MySQL Connection --------------------
 const db = mysql.createConnection({
-  host: process.env.DB_HOST, // from Railway/Clever Cloud
+  host: process.env.DB_HOST, // from render/Clever Cloud
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  port: Number(process.env.DB_PORT) || 20404,
+  port: Number(process.env.DB_PORT) || 3306,
 });
 
 db.connect((err) => {
