@@ -111,17 +111,14 @@ const Reservation = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ✅ Authentication check
     const userId = sessionStorage.getItem("user_id");
     if (!isAuthenticated || !userId) {
-      notification.warning({
+      return notification.warning({
         message: "Login Required",
         description: "You need to log in before reserving a table.",
       });
-      return;
     }
 
-    // ✅ Validate all required fields
     if (
       !fullName ||
       !email ||
@@ -130,102 +127,68 @@ const Reservation = () => {
       !reservationTime ||
       numOfPeople <= 0
     ) {
-      notification.warning({
+      return notification.warning({
         message: "Incomplete Details",
-        description: "Please fill in all required fields before submitting.",
+        description: "Please fill in all required fields.",
       });
-      return;
     }
 
     if (selectedTables.length === 0) {
-      notification.warning({
+      return notification.warning({
         message: "Select Tables",
-        description:
-          "Please select at least one table before submitting your reservation.",
+        description: "Please select at least one table.",
       });
-      return;
     }
 
-    // Prepare reservation data
-    const reservationData = {
-      full_name: fullName,
-      email: email,
-      pnum: phone,
-      reservation_date: reservationDate,
-      reservation_time: reservationTime,
-      num_of_people: numOfPeople,
-      special_request: notes,
-      table_ids: selectedTables, // keep as strings for VARCHAR
-    };
-
-    console.log("Submitting reservation data:", reservationData);
-
     try {
+      // 1️⃣ Add reservation
       const reservationResponse = await axios.post(
         `${apiUrl}/add_reservation/${userId}`,
-        reservationData,
+        {
+          full_name: fullName,
+          email,
+          pnum: phone,
+          reservation_date: reservationDate,
+          reservation_time: reservationTime,
+          num_of_people: numOfPeople,
+          special_request: notes,
+          table_ids: selectedTables,
+        },
         { headers: { "Content-Type": "application/json" } }
       );
 
-      console.log("Reservation response:", reservationResponse.data);
       const reserveId = reservationResponse.data.reserveId;
 
       notification.success({
         message: "Reservation Added",
-        description: "New reservation has been added successfully!",
+        description: "Your reservation has been added successfully.",
       });
 
-      // Insert into most_reserve_tbl for each table
-      for (const tableId of selectedTables) {
-        try {
-          await axios.post(
+      // 2️⃣ Update most_reserve per table
+      await Promise.all(
+        selectedTables.map((tableId) =>
+          axios.post(
             `${apiUrl}/most_reserve`,
-            { table_id: tableId },
+            { table_id: tableId, reservation_date: reservationDate },
             { headers: { "Content-Type": "application/json" } }
-          );
-        } catch (err) {
-          console.error("Error adding to most_reserve_tbl:", err);
-        }
-      }
+          )
+        )
+      );
 
-      // Insert activity into reservation_activity_tbl
-      try {
-        await axios.post(
-          `${apiUrl}/reservation_activity/${userId}`,
-          {
-            reservation_id: reserveId,
-            activity_date: new Date().toISOString(),
-          },
-          { headers: { "Content-Type": "application/json" } }
-        );
-        console.log("Activity recorded successfully");
-      } catch (error: unknown) {
-        // Narrow error type for TypeScript
-        if (axios.isAxiosError(error)) {
-          console.error(
-            "Error recording activity:",
-            error.response?.data || error.message
-          );
-        } else if (error instanceof Error) {
-          console.error("Error recording activity:", error.message);
-        } else {
-          console.error("Error recording activity:", error);
-        }
+      // 3️⃣ Add reservation activity
+      await axios.post(
+        `${apiUrl}/reservation_activity/${userId}`,
+        { reservation_id: reserveId, activity_date: new Date().toISOString() },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-        notification.error({
-          message: "Error",
-          description:
-            "Failed to record reservation activity. Please try again later.",
-        });
-      }
-
-      // Update reserved tables and reset selection
+      // 4️⃣ Reset selection & update reserved tables
       setReservedTables((prev) => [...prev, ...selectedTables]);
       setSelectedTables([]);
-    } catch (error: any) {
+    } catch (err: any) {
       console.error(
-        "Error adding reservation:",
-        error.response?.data || error.message
+        "Error during reservation:",
+        err.response?.data || err.message
       );
       notification.error({
         message: "Error",

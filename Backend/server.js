@@ -2673,31 +2673,60 @@ app.post("/send_reservation_email", (req, res) => {
       return res.status(500).json({ error: "Failed to send email" });
     });
 });
-app.post("/most_reserve", (req, res) => {
-  const { table_id } = req.body;
 
-  if (!table_id) {
-    return res.status(400).json({ error: "Missing table_id" });
+app.post("/most_reserve", (req, res) => {
+  const { table_id, reservation_date } = req.body;
+
+  // Validate required fields
+  if (!table_id || !reservation_date) {
+    return res
+      .status(400)
+      .json({ error: "Missing table_id or reservation_date" });
   }
 
-  // Convert JS Date to MySQL datetime format
-  const now = new Date();
-  const mysqlNow = now.toISOString().slice(0, 19).replace("T", " ");
-  // Result: "YYYY-MM-DD HH:MM:SS"
+  // Check if there's already a record for this table on the given date
+  const checkSql = `SELECT * FROM most_reserve_tbl WHERE table_id = ? AND DATE(date_created) = ?`;
 
-  const sql = `
-    INSERT INTO most_reserve_tbl (table_id, most_reservation, date_created)
-    VALUES (?, 1, ?)
-    ON DUPLICATE KEY UPDATE most_reservation = most_reservation + 1, date_created = ?
-  `;
-
-  db.query(sql, [table_id, mysqlNow, mysqlNow], (err, result) => {
+  db.query(checkSql, [table_id, reservation_date], (err, result) => {
     if (err) {
-      console.error("Error updating most_reserve_tbl:", err.sqlMessage || err);
+      console.error("Error checking most_reserve_tbl:", err.sqlMessage || err);
       return res.status(500).json({ error: "Internal Server Error" });
     }
 
-    res.json({ message: "Most Reserved Table Updated Successfully" });
+    if (result.length > 0) {
+      // Record exists, increment most_reservation without changing date_created
+      const updateSql = `
+        UPDATE most_reserve_tbl 
+        SET most_reservation = most_reservation + 1
+        WHERE table_id = ? AND DATE(date_created) = ?
+      `;
+      db.query(updateSql, [table_id, reservation_date], (err2) => {
+        if (err2) {
+          console.error(
+            "Error updating most_reserve_tbl:",
+            err2.sqlMessage || err2
+          );
+          return res.status(500).json({ error: "Internal Server Error" });
+        }
+        res.json({ message: "Most Reserved Table Updated Successfully" });
+      });
+    } else {
+      // Record does not exist, insert new row with the given reservation_date
+      const insertSql = `
+        INSERT INTO most_reserve_tbl (table_id, most_reservation, date_created)
+        VALUES (?, ?, ?)
+      `;
+      db.query(insertSql, [table_id, 1, reservation_date], (err3) => {
+        if (err3) {
+          console.error(
+            "Error inserting into most_reserve_tbl:",
+            err3.sqlMessage || err3
+          );
+          return res.status(500).json({ error: "Internal Server Error" });
+        }
+        res.json({ message: "Most Reserved Table Created Successfully" });
+      });
+    }
   });
 });
 
@@ -3516,60 +3545,45 @@ app.post("/reservation_activity/:user_id", (req, res) => {
 
     const reservationData = result[0];
 
-    // Ensure required fields are present
-    if (
-      !reservationData.full_name ||
-      !reservationData.reservation_type ||
-      !reservationData.status ||
-      !reservationData.table_ids
-    ) {
-      console.error("Missing reservation data fields", reservationData);
-      return res.status(400).json({ error: "Missing reservation data fields" });
+    if (!reservationData.table_ids) {
+      return res
+        .status(400)
+        .json({ error: "No tables found for this reservation" });
     }
 
-    // Split tables and insert one row per table for clarity
     const tables = reservationData.table_ids.split(",");
 
-    let insertErrors = 0;
+    // Prepare bulk insert values
+    const values = tables.map((tableId) => [
+      userId,
+      activity_date,
+      reservationData.full_name,
+      reservationData.reservation_type,
+      reservationData.status,
+      tableId,
+      reservation_id,
+    ]);
 
-    tables.forEach((tableId) => {
-      const insertQuery = `
-        INSERT INTO reservation_activity_tbl 
-        (user_id, activity_date, full_name, reservation_type, status, table_id, reservation_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `;
+    const insertQuery = `
+      INSERT INTO reservation_activity_tbl 
+      (user_id, activity_date, full_name, reservation_type, status, table_id, reservation_id)
+      VALUES ?
+    `;
 
-      db.query(
-        insertQuery,
-        [
-          userId,
-          activity_date,
-          reservationData.full_name,
-          reservationData.reservation_type,
-          reservationData.status,
-          tableId, // VARCHAR supported
-          reservation_id,
-        ],
-        (err2) => {
-          if (err2) {
-            insertErrors++;
-            console.error(
-              "Error inserting reservation activity:",
-              err2.sqlMessage || err2
-            );
-          }
-        }
-      );
-    });
+    db.query(insertQuery, [values], (err2) => {
+      if (err2) {
+        console.error(
+          "Error inserting reservation activity:",
+          err2.sqlMessage || err2
+        );
+        return res
+          .status(500)
+          .json({ error: "Error inserting reservation activity" });
+      }
 
-    if (insertErrors > 0) {
-      return res
-        .status(500)
-        .json({ error: "Error inserting some reservation activities" });
-    }
-
-    res.status(200).json({
-      message: "Reservation activity added successfully",
+      res
+        .status(200)
+        .json({ message: "Reservation activity added successfully" });
     });
   });
 });
