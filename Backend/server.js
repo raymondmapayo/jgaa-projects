@@ -3553,10 +3553,10 @@ app.post("/reservation_activity/:user_id", (req, res) => {
 
     const tables = reservationData.table_ids.split(",");
 
-    // Prepare bulk insert values
+    // Prepare bulk insert values without extra formatting
     const values = tables.map((tableId) => [
       userId,
-      activity_date,
+      activity_date, // just pass it directly
       reservationData.full_name,
       reservationData.reservation_type,
       reservationData.status,

@@ -178,7 +178,7 @@ const Reservation = () => {
       // 3️⃣ Add reservation activity
       await axios.post(
         `${apiUrl}/reservation_activity/${userId}`,
-        { reservation_id: reserveId, activity_date: new Date().toISOString() },
+        { reservation_id: reserveId, activity_date: reservationDate },
         { headers: { "Content-Type": "application/json" } }
       );
 
