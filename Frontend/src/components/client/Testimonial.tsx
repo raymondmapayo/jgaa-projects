@@ -42,10 +42,10 @@ const TestimonialSection = () => {
       <div className="container mx-auto px-4">
         {/* Header Section */}
         <div className="text-center mb-12">
-          <h4 className="text-yellow-500 text-xl font-medium uppercase">
+          <h4 className="font-core text-yellow-500 text-xl font-medium uppercase">
             Our Testimonial
           </h4>
-          <h1 className="text-gray-800 text-3xl md:text-4xl font-bold">
+          <h1 className="font-core text-gray-800 text-3xl md:text-4xl font-bold">
             What Our Customers Say
           </h1>
         </div>

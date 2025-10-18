@@ -58,7 +58,7 @@ const Fact: React.FC = () => {
                 >
                   {fact.icon}
                 </motion.div>
-                <h4 className="font-semibold text-lg sm:text-xl md:text-2xl text-gray-800 mb-1 sm:mb-2">
+                <h4 className="font-core font-semibold text-lg sm:text-xl md:text-2xl text-gray-800 mb-1 sm:mb-2">
                   {fact.title}
                 </h4>
                 <h1 className="text-[#ffa62b] font-extrabold text-3xl sm:text-4xl md:text-5xl">

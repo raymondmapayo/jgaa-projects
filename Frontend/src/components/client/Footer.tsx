@@ -66,40 +66,36 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Contact Info */}
-          <div>
+          <div className="md:ml-12">
             <h4 className="font-core text-lg text-yellow-500 mb-3 font-semibold">
               Contact Info
             </h4>
             <ul className="font-core space-y-2 text-gray-300">
               <li className="flex items-center gap-2">
-                📞 <span>+1 (062) 109-9222</span>
+                📞 <span>0956 517 8708</span>
               </li>
               <li className="flex items-center gap-2">
-                ✉️ <span>Info@YourGmail24.com</span>
+                ✉️ <span>jgaa@gmail.com</span>
               </li>
               <li className="flex items-start gap-2">
                 📍{" "}
                 <address className="not-italic">
-                  153 Williamson Plaza, Maggieberg, MT 09514
+                  7003 Emilio Jacinto St, Poblacion District, Davao City, 8080
+                  Davao del Sur, Philippines.
                 </address>
               </li>
             </ul>
           </div>
 
           {/* Opening Hours */}
-          <div>
+
+          <div className="md:ml-14">
             <h4 className="font-core text-lg text-yellow-500 mb-3 font-semibold">
               Opening Hours
             </h4>
             <ul className="font-core space-y-2 text-gray-300">
               <li className="flex items-center gap-2">
-                🕒 Monday-Friday: 08:00-22:00
-              </li>
-              <li className="flex items-center gap-2">
-                🕒 Tuesday: 16:00 - Midnight
-              </li>
-              <li className="flex items-center gap-2">
-                🕒 Saturday: 10:00-16:00
+                🕒 Monday-Sunday: 3:00 PM - 1:00 AM
               </li>
             </ul>
           </div>

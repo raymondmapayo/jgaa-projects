@@ -10,18 +10,18 @@ const Banner: React.FC = () => {
           {/* Left Column */}
           <div className="text-center lg:text-left max-w-[600px]">
             <div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight">
+              <h1 className="font-core text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight">
                 Beers
               </h1>
-              <p className="text-2xl sm:text-4xl md:text-5xl font-light text-gray-800 mt-4">
+              <p className="font-core text-2xl sm:text-4xl md:text-5xl font-light text-gray-800 mt-4">
                 in Our Store
               </p>
-              <p className="text-sm sm:text-base md:text-lg text-gray-800 mt-4">
+              <p className="font-core text-sm sm:text-base md:text-lg text-gray-800 mt-4">
                 The taste is goods.
               </p>
               <a
                 href="#"
-                className="mt-6 inline-block bg-transparent border-2 border-white text-gray-800 py-2 px-6 sm:py-3 sm:px-8 rounded-full font-bold hover:bg-white hover:text-yellow-500 transition"
+                className="font-core mt-6 inline-block bg-transparent border-2 border-white text-gray-800 py-2 px-6 sm:py-3 sm:px-8 rounded-full font-bold hover:bg-white hover:text-yellow-500 transition"
               >
                 BUY
               </a>

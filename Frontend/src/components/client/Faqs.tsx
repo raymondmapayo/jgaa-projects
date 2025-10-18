@@ -13,10 +13,10 @@ const Faqs: React.FC = () => {
         <div className="flex flex-col lg:flex-row justify-between items-center gap-12">
           {/* Left Column: OUR FAQS */}
           <div className="w-full lg:w-1/2">
-            <h1 className="text-5xl font-extrabold text-white drop-shadow-lg">
+            <h1 className="font-core text-5xl font-extrabold text-white drop-shadow-lg">
               OUR FAQS
             </h1>
-            <p className="text-lg text-white/90 mt-4 mb-8">
+            <p className="font-core text-lg text-white/90 mt-4 mb-8">
               Have questions about our restaurant, menu, or services? Here are
               the answers to some of the most common questions our guests ask.
             </p>
@@ -41,8 +41,8 @@ const Faqs: React.FC = () => {
                 key="1"
               >
                 <p className="text-gray-700 text-base">
-                  We’re open from <strong>10:00 AM to 10:00 PM</strong>, Monday
-                  to Sunday.
+                  We’re open from <strong>3:00 PM to 1:00 AM</strong>, Monday to
+                  Sunday.
                 </p>
               </Panel>
               <Panel
@@ -54,22 +54,10 @@ const Faqs: React.FC = () => {
                 key="2"
               >
                 <p className="text-gray-700 text-base">
-                  Yes! You can reserve a table online or call us directly.
+                  Yes! You can reserve a table online.
                 </p>
               </Panel>
-              <Panel
-                header={
-                  <span className="text-lg font-semibold">
-                    Do you offer delivery?
-                  </span>
-                }
-                key="3"
-              >
-                <p className="text-gray-700 text-base">
-                  Absolutely. We deliver through our website and food delivery
-                  partners.
-                </p>
-              </Panel>
+
               <Panel
                 header={
                   <span className="text-lg font-semibold">
@@ -92,7 +80,11 @@ const Faqs: React.FC = () => {
               >
                 <p className="text-gray-700 text-base">
                   We’re located at{" "}
-                  <strong>123 Food Street, Culinary City</strong>.
+                  <strong>
+                    7003 Emilio Jacinto St, Poblacion District, Davao City, 8080
+                    Davao del Sur, Philippines
+                  </strong>
+                  .
                 </p>
               </Panel>
             </Collapse>

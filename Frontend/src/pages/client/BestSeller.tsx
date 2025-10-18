@@ -147,21 +147,27 @@ const Bestseller: React.FC = () => {
                   {product.item_name}
                 </h5>
 
-                <div className="flex justify-center sm:justify-start mt-2 text-yellow-500">
-                  <CustomRate value={parseFloat(product.total_avg_rating)} />
-                </div>
+                {/* Group rating, review count, and price — align left */}
+                <div className="mt-2 text-left">
+                  {/* Rating */}
+                  <div className="flex justify-start text-yellow-500">
+                    <CustomRate value={parseFloat(product.total_avg_rating)} />
+                  </div>
 
-                <div className="font-core text-gray-600 mt-2">
-                  <p>
-                    {product.rating_count > 0
-                      ? `${product.rating_count} reviews`
-                      : "No reviews yet"}
-                  </p>
-                </div>
+                  {/* Review Count */}
+                  <div className="font-core text-gray-600 mt-2">
+                    <p>
+                      {product.rating_count > 0
+                        ? `${product.rating_count} reviews`
+                        : "No reviews yet"}
+                    </p>
+                  </div>
 
-                <h4 className="font-core text-xl font-bold text-gray-800 mt-2">
-                  ₱{product.price}
-                </h4>
+                  {/* Price */}
+                  <h4 className="font-core text-xl font-bold text-gray-800 mt-2">
+                    ₱{product.price}
+                  </h4>
+                </div>
 
                 {/* Buttons Section with Flexbox Layout */}
                 <div className="mt-4 flex justify-between gap-4">
