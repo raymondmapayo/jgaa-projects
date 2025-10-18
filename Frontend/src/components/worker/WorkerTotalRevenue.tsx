@@ -168,9 +168,9 @@ const WorkerTotalRevenue: React.FC<WorkerTotalRevenueProps> = ({ dates }) => {
     return `
 📅 ${dayjs(last.date).format("MM/DD/YYYY")}: (₱${last.sales}) — ${
       prev
-        ? `${changeText} vs ${dayjs(prev.date).format("MM/DD/YYYY")}: (₱${
-            prev.sales
-          })`
+        ? `${changeText} compared to ${dayjs(prev.date).format(
+            "MM/DD/YYYY"
+          )}: (₱${prev.sales})`
         : "-"
     }
 🔼 Highest: ${dayjs(highest.date).format("MM/DD/YYYY")} — ₱${highest.sales}
@@ -204,6 +204,10 @@ const WorkerTotalRevenue: React.FC<WorkerTotalRevenueProps> = ({ dates }) => {
             Total Sales (
             {filterType.charAt(0).toUpperCase() + filterType.slice(1)})
           </h2>
+          <div className="flex-shrink-0 text-sm text-gray-500 dark:text-gray-300">
+            {dates[0]?.format("MMM DD, YYYY")} →{" "}
+            {dates[1]?.format("MMM DD, YYYY")}
+          </div>
         </div>
 
         <div className="flex flex-col justify-center items-center min-h-[300px] w-full">

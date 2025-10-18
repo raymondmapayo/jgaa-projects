@@ -215,7 +215,7 @@ const WorkerDashboard = () => {
     p-0 rounded-none w-full
     sm:p-4 sm:rounded-xl"
     >
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
         <h1 className="text-lg font-semibold">Dashboard</h1>
 
         {/* 🔸 Unified Filter Modal Button */}
@@ -251,7 +251,7 @@ const WorkerDashboard = () => {
             </div>
           </div>
 
-          <div className="flex justify-between gap-4">
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
             <div className="flex-1">
               <label className="block mb-1 text-gray-600 text-sm">
                 Start Date

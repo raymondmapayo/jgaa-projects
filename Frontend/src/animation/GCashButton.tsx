@@ -94,11 +94,7 @@ const GCashButton: React.FC<GCashButtonProps> = ({
           <p className="text-sm text-gray-600 mb-2 text-center font-medium">
             Note: Screenshot the Receipt payment
           </p>
-          <img
-            src="public/qr.jpg"
-            alt="GCash QR Code"
-            className="w-60 h-60 mb-4"
-          />
+          <img src="/qr.jpg" alt="GCash QR Code" className="w-60 h-60 mb-4" />
           <Button type="primary" onClick={() => setStep("form")}>
             Next
           </Button>

@@ -121,10 +121,14 @@ const TotalCustomersChart: React.FC<TotalCustomersChartProps> = ({ dates }) => {
     <div className="relative -mx-6 sm:mx-0">
       <div className="bg-white dark:bg-[#001f3f] rounded-lg shadow-lg sm:w-full h-full p-6 flex flex-col transition-colors">
         {/* Header */}
-        <div className="flex flex-wrap justify-between items-center mb-4 border-b border-dotted pb-2 gap-3">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white flex-1">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 border-b border-dotted pb-2">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white">
             Total Customers
           </h2>
+          <div className="flex-shrink-0 text-sm text-gray-500 dark:text-gray-300">
+            {dates[0]?.format("MMM DD, YYYY")} →{" "}
+            {dates[1]?.format("MMM DD, YYYY")}
+          </div>
         </div>
 
         {/* Chart or No Data */}

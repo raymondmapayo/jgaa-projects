@@ -1,138 +1,73 @@
-// src/components/admin/AllFiltersModal.tsx
-import { Button, DatePicker, Modal, message } from "antd";
+// src/components/worker/WorkerDashboardFilter.tsx
+import { FilterOutlined } from "@ant-design/icons";
+import { Button, DatePicker, Modal } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import { useState } from "react";
-import { AiOutlineArrowRight } from "react-icons/ai";
-import { FiCalendar, FiFilter } from "react-icons/fi";
 
-type FilterType = "customer" | "reservation" | "revenue";
+const { RangePicker } = DatePicker;
 
-interface AllFiltersModalProps {
-  type: FilterType;
+interface WorkerDashboardFilterProps {
   onApply: (start: Dayjs | null, end: Dayjs | null) => void;
-  onReset?: () => void;
 }
 
-function AllFiltersModal({ type, onApply, onReset }: AllFiltersModalProps) {
-  const today = dayjs();
-  const firstDayOfMonth = today.startOf("month");
-
+const WorkerDashboardFilter: React.FC<WorkerDashboardFilterProps> = ({
+  onApply,
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [startDate, setStartDate] = useState<Dayjs | null>(firstDayOfMonth);
-  const [endDate, setEndDate] = useState<Dayjs | null>(today);
   const [dates, setDates] = useState<[Dayjs | null, Dayjs | null]>([
-    firstDayOfMonth,
-    today,
+    dayjs().startOf("month"),
+    dayjs(),
   ]);
 
-  const showModal = () => setIsModalOpen(true);
-  const handleCancel = () => setIsModalOpen(false);
-
   const handleApply = () => {
-    if (startDate && endDate && startDate.isAfter(endDate)) {
-      message.error("Start date cannot be after end date!");
-      return;
-    }
-    onApply(startDate, endDate);
-    setDates([startDate, endDate]);
+    onApply(dates[0], dates[1]);
     setIsModalOpen(false);
   };
 
   const handleReset = () => {
-    const resetStart = firstDayOfMonth;
-    const resetEnd = today;
-    setStartDate(resetStart);
-    setEndDate(resetEnd);
-    setDates([resetStart, resetEnd]);
-    if (onReset) onReset();
+    const defaultRange: [Dayjs | null, Dayjs | null] = [
+      dayjs().startOf("month"),
+      dayjs(),
+    ];
+    setDates(defaultRange);
+    onApply(defaultRange[0], defaultRange[1]);
     setIsModalOpen(false);
   };
 
-  // Customize label based on type
-  const getFilterLabel = () => {
-    switch (type) {
-      case "customer":
-        return "Customer";
-      case "reservation":
-        return "Reservation/Table";
-      case "revenue":
-        return "Revenue/Sales";
-      default:
-        return "Filter";
-    }
-  };
-
   return (
-    <div className="flex items-center gap-4">
+    <>
       <Button
-        type="default"
-        onClick={showModal}
-        className="flex items-center gap-2"
+        icon={<FilterOutlined />}
+        onClick={() => setIsModalOpen(true)}
+        className="bg-[#fa8c16] text-white rounded-md"
       >
-        <FiFilter className="text-orange-500" />
-        <span className="font-medium">
-          {getFilterLabel()} Filter - {dates[0]?.format("MMM DD, YYYY")} →{" "}
-          {dates[1]?.format("MMM DD, YYYY")}
-        </span>
+        Filter
       </Button>
 
-      <Modal open={isModalOpen} footer={null} onCancel={handleCancel} centered>
-        <div className="flex items-center gap-2 mb-4 text-lg font-semibold">
-          <FiCalendar className="text-orange-500" />
-          <span>Filter {getFilterLabel()} by Date</span>
-        </div>
-
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="border px-3 py-1 rounded-md">
-            {dates[0] ? dates[0].format("MMM DD") : "Start"}
-          </div>
-          <AiOutlineArrowRight className="text-xl text-gray-500" />
-          <div className="border px-3 py-1 rounded-md">
-            {dates[1] ? dates[1].format("MMM DD") : "End"}
-          </div>
-        </div>
-
-        {/* Two independent calendars */}
-        <div className="flex justify-between gap-4">
-          <div className="flex-1">
-            <label className="block mb-1 text-gray-600 text-sm">
-              Start Date
-            </label>
-            <DatePicker
-              value={startDate}
-              onChange={(val) => {
-                setStartDate(val);
-                setDates([val, endDate]);
-              }}
-              format="MMM DD, YYYY"
-              style={{ width: "100%" }}
-            />
-          </div>
-
-          <div className="flex-1">
-            <label className="block mb-1 text-gray-600 text-sm">End Date</label>
-            <DatePicker
-              value={endDate}
-              onChange={(val) => {
-                setEndDate(val);
-                setDates([startDate, val]);
-              }}
-              format="MMM DD, YYYY"
-              style={{ width: "100%" }}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 mt-6">
-          <Button onClick={handleCancel}>Cancel</Button>
-          <Button type="primary" onClick={handleApply}>
+      <Modal
+        title="Filter by Date Range"
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        footer={[
+          <Button key="reset" onClick={handleReset}>
+            Reset
+          </Button>,
+          <Button key="apply" type="primary" onClick={handleApply}>
             Apply
-          </Button>
-          <Button onClick={handleReset}>Reset</Button>
-        </div>
+          </Button>,
+        ]}
+      >
+        <RangePicker
+          value={dates}
+          onChange={(values) =>
+            setDates(values as [Dayjs | null, Dayjs | null])
+          }
+          allowClear={false}
+          className="w-full"
+        />
       </Modal>
-    </div>
+    </>
   );
-}
+};
 
-export default AllFiltersModal;
+export default WorkerDashboardFilter;
