@@ -12,7 +12,6 @@ const bcrypt = require("bcryptjs");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const cron = require("node-cron"); // ✅ Use require instead of import
 dotenv.config();
 const { sendConfirmationEmail } = require("./service/EmailService");
 const sgMail = require("@sendgrid/mail");
@@ -2508,30 +2507,23 @@ app.post("/add_reservation/:user_id", (req, res) => {
   });
 });
 
-// AUTO-CLOSE TABLES at 1:00 AM (Manila Time)
-cron.schedule(
-  "0 1 * * *",
-  () => {
-    const completeReservations = `
-      UPDATE reservation_tbl
-      SET table_status = 'Completed'
-      WHERE table_status = 'Reserved'
-    `;
+// server.js (Node.js + Express)
+app.post("/update_completed_tables", (req, res) => {
+  const query = `
+    UPDATE reservation_tbl
+    SET table_status = 'Completed'
+    WHERE table_status = 'Reserved'
+  `;
 
-    db.query(completeReservations, (err) => {
-      if (err) {
-        console.error("❌ Error updating table_status:", err);
-      } else {
-        console.log(
-          "✅ All Reserved tables marked as Completed at 1 AM (Manila time)."
-        );
-      }
-    });
-  },
-  {
-    timezone: "Asia/Manila", // ✅ ensures it runs at correct PH time
-  }
-);
+  db.query(query, (err, result) => {
+    if (err) {
+      console.error("❌ Error updating table_status:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+    console.log("✅ Reserved tables marked as Completed automatically.");
+    res.json({ success: true });
+  });
+});
 
 // ✅ Get reservation status
 // Get reservation status
