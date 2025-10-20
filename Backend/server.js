@@ -2507,12 +2507,16 @@ app.post("/add_reservation/:user_id", (req, res) => {
   });
 });
 
-// server.js (Node.js + Express)
+// Mark Reserved tables as Completed if past reservation time
 app.post("/update_completed_tables", (req, res) => {
   const query = `
     UPDATE reservation_tbl
     SET table_status = 'Completed'
     WHERE table_status = 'Reserved'
+    AND (
+      reservation_date < CURDATE() OR
+      (reservation_date = CURDATE() AND reservation_time <= CURTIME())
+    )
   `;
 
   db.query(query, (err, result) => {
@@ -2520,7 +2524,7 @@ app.post("/update_completed_tables", (req, res) => {
       console.error("❌ Error updating table_status:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
-    console.log("✅ Reserved tables marked as Completed automatically.");
+    console.log("✅ Reserved tables automatically marked as Completed.");
     res.json({ success: true });
   });
 });

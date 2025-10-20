@@ -109,29 +109,25 @@ const WorkerReservation = () => {
   const apiUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    const checkAndCompleteTables = async () => {
-      const now = dayjs().tz("Asia/Manila");
-      const hour = now.hour();
+    const completePastReservations = async () => {
+      try {
+        // Trigger backend to mark past Reserved tables as Completed
+        await axios.post(`${apiUrl}/update_completed_tables`);
+        console.log("✅ Reserved tables updated to Completed if past due");
 
-      // Only trigger at 1 AM
-      if (hour === 1) {
-        try {
-          await axios.post(`${apiUrl}/update_completed_tables`);
-          console.log("✅ Reserved tables updated to Completed at 1 AM");
-          // Refresh reservations after update
-          const resReservations = await axios.get(`${apiUrl}/get_reservation`);
-          setReservations(resReservations.data);
-        } catch (err) {
-          console.error("❌ Failed to update completed tables:", err);
-        }
+        // Refresh reservations after update
+        const resReservations = await axios.get(`${apiUrl}/get_reservation`);
+        setReservations(resReservations.data);
+      } catch (err) {
+        console.error("❌ Failed to update completed tables:", err);
       }
     };
 
-    // Check immediately on load
-    checkAndCompleteTables();
+    // Run immediately on load
+    completePastReservations();
 
-    // Recheck every 5 minutes in case the page is left open
-    const interval = setInterval(checkAndCompleteTables, 5 * 60 * 1000);
+    // Re-run every 5 minutes if page is left open
+    const interval = setInterval(completePastReservations, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
