@@ -3,6 +3,14 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { BsCheck2Circle } from "react-icons/bs";
+import ReservationClose from "./ReservationClose"; // ✅ added import
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+import ReservationDisableEnable from "../worker/ReservationDisableEnable";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface Reservation {
   reservation_id: number;
@@ -19,10 +27,31 @@ const Reservation = () => {
   const [reservationTime, setReservationTime] = useState<string>("");
   const [numOfPeople, setNumOfPeople] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
+  const [isWorkerEnabled, setIsWorkerEnabled] = useState<boolean>(true);
 
   const [reservedTables, setReservedTables] = useState<string[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isReservationOpen, setIsReservationOpen] = useState<boolean>(true); // ✅ added
   const apiUrl = import.meta.env.VITE_API_URL;
+
+  // 🔹 Sync with worker toggle
+
+  useEffect(() => {
+    // Read the current state from localStorage
+    const stored = localStorage.getItem("reservationEnabled");
+    setIsWorkerEnabled(stored ? stored === "true" : false); // default to false if not set
+
+    // Listen for changes in localStorage (in case toggle is changed in another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "reservationEnabled") {
+        setIsWorkerEnabled(e.newValue === "true");
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   useEffect(() => {
     const storedEmail = sessionStorage.getItem("email");
@@ -46,6 +75,37 @@ const Reservation = () => {
       fetchReservedTables();
     }
   }, [isAuthenticated]);
+
+  // ✅ Automatically check open/close time using dayjs
+  useEffect(() => {
+    const checkReservationTime = async () => {
+      const now = dayjs().tz("Asia/Manila");
+      const hour = now.hour();
+      const minute = now.minute();
+
+      // ✅ OPEN: 8:00 AM → 12:59 AM (next day)
+      // ❌ CLOSED: 1:00 AM → 7:59 AM
+      if (hour >= 8 || hour < 1) {
+        setIsReservationOpen(true);
+      } else {
+        setIsReservationOpen(false);
+      }
+
+      // ✅ Auto reset tables every 8:00 AM exactly
+      if (hour === 8 && minute === 0) {
+        try {
+          await axios.post(`${apiUrl}/complete_reservations`);
+          console.log("✅ Tables reset to available at 8:00 AM");
+        } catch (error) {
+          console.error("❌ Error resetting tables:", error);
+        }
+      }
+    };
+
+    checkReservationTime();
+    const interval = setInterval(checkReservationTime, 60000);
+    return () => clearInterval(interval);
+  }, [apiUrl]);
 
   const fetchReservedTables = async () => {
     try {
@@ -185,6 +245,12 @@ const Reservation = () => {
       // 4️⃣ Reset selection & update reserved tables
       setReservedTables((prev) => [...prev, ...selectedTables]);
       setSelectedTables([]);
+
+      // ✅ Clear form inputs
+      setReservationDate(new Date().toISOString().split("T")[0]);
+      setReservationTime("");
+      setNumOfPeople(0);
+      setNotes("");
     } catch (err: any) {
       console.error(
         "Error during reservation:",
@@ -208,6 +274,15 @@ const Reservation = () => {
     { reservation_id: 8, tableName: "8", capacity: 2, img: "/Table-8.png" },
     { reservation_id: 9, tableName: "9", capacity: 2, img: "/Table-9.png" },
   ];
+
+  // ✅ Show close message when outside operating hours
+  if (!isReservationOpen) {
+    return <ReservationClose />;
+  }
+  // If worker disabled reservations, show ReservationDisableEnable
+  if (!isWorkerEnabled) {
+    return <ReservationDisableEnable />;
+  }
 
   return (
     <motion.div className="container mx-auto px-4 py-8">
@@ -249,21 +324,20 @@ const Reservation = () => {
               <motion.div
                 key={table.reservation_id}
                 className={`
-          relative flex justify-center items-center rounded-lg overflow-hidden cursor-pointer transition-all duration-300
-          border flex-auto
-          min-w-[45%] sm:min-w-[30%] md:min-w-[25%] lg:min-w-[30%] xl:min-w-[30%]
-          max-w-[45%] sm:max-w-[30%] md:max-w-[25%] lg:max-w-[30%] xl:max-w-[30%]
-          ${
-            isReserved
-              ? "border-4 border-gray-400 bg-white cursor-not-allowed"
-              : isSelected
-              ? "border-4 border-green-500 bg-white"
-              : "border-4 border-green-500 bg-white"
-          }
-        `}
+                  relative flex justify-center items-center rounded-lg overflow-hidden cursor-pointer transition-all duration-300
+                  border flex-auto
+                  min-w-[45%] sm:min-w-[30%] md:min-w-[25%] lg:min-w-[30%] xl:min-w-[30%]
+                  max-w-[45%] sm:max-w-[30%] md:max-w-[25%] lg:max-w-[30%] xl:max-w-[30%]
+                  ${
+                    isReserved
+                      ? "border-4 border-gray-400 bg-white cursor-not-allowed"
+                      : isSelected
+                      ? "border-4 border-green-500 bg-white"
+                      : "border-4 border-green-500 bg-white"
+                  }
+                `}
                 onClick={() => handleTableClick(table.tableName)}
               >
-                {/* ✅ Show the check icon ONLY when selected */}
                 {!isReserved && isSelected && (
                   <motion.div
                     initial={{ scale: 0, opacity: 0, rotate: -90 }}
@@ -273,24 +347,22 @@ const Reservation = () => {
                   >
                     <BsCheck2Circle
                       className="text-green-600 drop-shadow-[0_0_3px_rgba(34,197,94,0.8)]
-                text-[20px] sm:text-[22px] md:text-[24px] lg:text-[26px] xl:text-[28px]"
+                        text-[20px] sm:text-[22px] md:text-[24px] lg:text-[26px] xl:text-[28px]"
                     />
                   </motion.div>
                 )}
-
-                {/* Image fills the card */}
                 <img
                   src={table.img}
                   alt={`Table ${table.tableName}`}
                   className={`
-            absolute inset-0 object-cover w-full h-full z-0
-            transition-transform duration-300
-            ${
-              isReserved || isSelected
-                ? "opacity-80 scale-95"
-                : "opacity-100 scale-100"
-            }
-          `}
+                    absolute inset-0 object-cover w-full h-full z-0
+                    transition-transform duration-300
+                    ${
+                      isReserved || isSelected
+                        ? "opacity-80 scale-95"
+                        : "opacity-100 scale-100"
+                    }
+                  `}
                 />
               </motion.div>
             );
@@ -329,7 +401,6 @@ const Reservation = () => {
             onChange={(e) => setPhone(e.target.value)}
             required
           />
-          {/* Flex for Date & Time */}
           <div className="flex gap-4">
             <input
               type="date"
@@ -358,6 +429,7 @@ const Reservation = () => {
             placeholder="Notes* (Optional)"
             className="font-core w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
             rows={3}
+            value={notes} // ✅ bind value
             onChange={(e) => setNotes(e.target.value)}
           ></textarea>
           <motion.button

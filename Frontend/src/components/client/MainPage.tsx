@@ -66,12 +66,13 @@ const MainPage = () => {
             Bringing the flavors of Thailand to your plate! Authentic flavors,
             vibrant spices, and unforgettable dishes!
           </p>
-          <button className="mt-8 bg-[#ffb524] font-core  hover:bg-[#fda000] text-white font-semibold py-3 px-6 rounded-full transition duration-300 shadow-lg">
-            Order Now
-          </button>
+          <a href="https://food.grab.com/ph/en/restaurant/jgaa-food-drinks-jacinto-delivery/2-C2V1GEWDLAXAVT?sourceID=20251019_015140_6815b643c1e947aabcb42acff0228076_MEXMPS&nameSlug=online-delivery&id=2-C2V1GEWDLAXAVT">
+            <button className="mt-8 bg-[#ffb524] font-core  hover:bg-[#fda000] text-white font-semibold py-3 px-6 rounded-full transition duration-300 shadow-lg">
+              Order Now
+            </button>
+          </a>
         </div>
       </div>
-
       {/* Right Section */}
       <div className="relative mt-10 lg:mt-0 flex flex-col items-center">
         {/* Main Dish */}

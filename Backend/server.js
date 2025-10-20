@@ -12,6 +12,7 @@ const bcrypt = require("bcryptjs");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const cron = require("node-cron"); // ✅ Use require instead of import
 dotenv.config();
 const { sendConfirmationEmail } = require("./service/EmailService");
 const sgMail = require("@sendgrid/mail");
@@ -2414,8 +2415,22 @@ app.post("/add_reservation/:user_id", (req, res) => {
     reservation_time,
     num_of_people,
     special_request,
-    table_ids, // ✅ multiple tables go to usertable_list, NOT reservation_tbl
+    table_ids,
   } = req.body;
+
+  // ⏰ Validate reservation time (8 AM – 1 AM)
+  const hour = parseInt(reservation_time.split(":")[0], 10);
+  const isPM = reservation_time.toLowerCase().includes("pm");
+
+  let hour24 = hour;
+  if (isPM && hour !== 12) hour24 += 12;
+  if (!isPM && hour === 12) hour24 = 0;
+
+  if (hour24 < 8 && hour24 !== 0 && hour24 !== 1) {
+    return res
+      .status(400)
+      .json({ error: "Reservations are only open from 8 AM to 1 AM." });
+  }
 
   const fetchUserSql = "SELECT * FROM user_tbl WHERE user_id = ?";
   db.query(fetchUserSql, [user_id], (error, results) => {
@@ -2432,7 +2447,6 @@ app.post("/add_reservation/:user_id", (req, res) => {
     const userFullName = full_name || `${user.fname} ${user.lname}`;
     const userPhone = pnum || user.pnum;
 
-    // Step 1: Insert into reservation_tbl (NO table_id here)
     const insertReservationSql = `
       INSERT INTO reservation_tbl 
       (user_id, email, full_name, reservation_date, reservation_time, pnum, num_of_people, status, payment_status, table_status, special_request, reservation_type)
@@ -2460,13 +2474,13 @@ app.post("/add_reservation/:user_id", (req, res) => {
         return res.status(500).json({ error: "Internal Server Error" });
       }
 
-      const reserveId = result.insertId; // ✅ reservation_tbl PK
+      const reserveId = result.insertId;
 
-      // Step 2: Insert tables into usertable_list
       if (Array.isArray(table_ids) && table_ids.length > 0) {
         const insertTableSql = `
           INSERT INTO usertable_list (reservation_id, user_id, table_id)
-          VALUES ?`;
+          VALUES ?
+        `;
         const tableValues = table_ids.map((tableId) => [
           reserveId,
           user_id,
@@ -2481,16 +2495,85 @@ app.post("/add_reservation/:user_id", (req, res) => {
 
           return res.json({
             reserveId,
-            message: "Reservation and tables saved",
+            message: "Reservation and tables saved successfully.",
           });
         });
       } else {
         return res.json({
           reserveId,
-          message: "Reservation saved (no tables selected)",
+          message: "Reservation saved (no tables selected).",
         });
       }
     });
+  });
+});
+
+app.post("/complete_reservations", (req, res) => {
+  // Reset table_status for all tables automatically
+  const resetTables = `
+    UPDATE reservation_tbl
+    SET table_status = 'Available'
+  `;
+
+  db.query(resetTables, (err) => {
+    if (err) {
+      console.error("Error resetting table_status:", err);
+      return res.status(500).json({ error: "Error resetting table_status" });
+    }
+
+    // Optionally, you can also complete reservation activities automatically
+    const resetActivities = `
+      UPDATE reservation_activity_tbl
+      SET status = 'Completed'
+    `;
+    db.query(resetActivities, (err2) => {
+      if (err2) {
+        console.error("Error resetting activities:", err2);
+        return res
+          .status(500)
+          .json({ error: "Error completing reservation activities" });
+      }
+
+      res.status(200).json({
+        message: "Tables and activities reset successfully.",
+      });
+    });
+  });
+});
+
+cron.schedule("0 8 * * *", () => {
+  const resetTables = `UPDATE reservation_tbl SET table_status = 'Available'`;
+  const resetActivities = `UPDATE reservation_activity_tbl SET status = 'Completed'`;
+
+  db.query(resetTables, (err) => {
+    if (err) return console.error("❌ Error resetting table_status:", err);
+
+    db.query(resetActivities, (err2) => {
+      if (err2) return console.error("❌ Error completing activities:", err2);
+
+      console.log(
+        "✅ Tables reset to 'Available' and activities completed at 8 AM."
+      );
+    });
+  });
+});
+
+// AUTO-CLOSE PENDING RESERVATIONS at 1:00 AM
+cron.schedule("0 1 * * *", () => {
+  const completeReservations = `UPDATE reservation_tbl SET table_status = 'Completed' WHERE status != 'Completed'`;
+  const completeActivities = `UPDATE reservation_activity_tbl SET status = 'Completed' WHERE status != 'Completed'`;
+
+  db.query(completeReservations, (err) => {
+    if (err) console.error("❌ Error completing reservations:", err);
+    else {
+      db.query(completeActivities, (err2) => {
+        if (err2) console.error("❌ Error completing activities:", err2);
+        else
+          console.log(
+            "✅ All pending reservations and activities completed at 1 AM."
+          );
+      });
+    }
   });
 });
 
@@ -3516,7 +3599,6 @@ app.post("/reservation_activity/:user_id", (req, res) => {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  // Fetch reservation data with all tables for this reservation
   const query = `
     SELECT 
       r.reservation_id,
@@ -3533,7 +3615,7 @@ app.post("/reservation_activity/:user_id", (req, res) => {
 
   db.query(query, [reservation_id, userId], (err, result) => {
     if (err) {
-      console.error("Error fetching reservation data:", err.sqlMessage || err);
+      console.error("Error fetching reservation data:", err);
       return res.status(500).json({ error: "Error fetching reservation data" });
     }
 
@@ -3552,11 +3634,9 @@ app.post("/reservation_activity/:user_id", (req, res) => {
     }
 
     const tables = reservationData.table_ids.split(",");
-
-    // Prepare bulk insert values without extra formatting
     const values = tables.map((tableId) => [
       userId,
-      activity_date, // just pass it directly
+      activity_date,
       reservationData.full_name,
       reservationData.reservation_type,
       reservationData.status,
@@ -3572,10 +3652,7 @@ app.post("/reservation_activity/:user_id", (req, res) => {
 
     db.query(insertQuery, [values], (err2) => {
       if (err2) {
-        console.error(
-          "Error inserting reservation activity:",
-          err2.sqlMessage || err2
-        );
+        console.error("Error inserting reservation activity:", err2);
         return res
           .status(500)
           .json({ error: "Error inserting reservation activity" });
@@ -3583,7 +3660,7 @@ app.post("/reservation_activity/:user_id", (req, res) => {
 
       res
         .status(200)
-        .json({ message: "Reservation activity added successfully" });
+        .json({ message: "Reservation activity added successfully." });
     });
   });
 });

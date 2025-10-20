@@ -2,13 +2,8 @@ import { Menu } from "antd";
 import { useEffect } from "react";
 import { FaReceipt } from "react-icons/fa6";
 import { IoChatboxSharp } from "react-icons/io5";
-import {
-  MdCategory,
-  MdInventory2,
-  MdMenuBook,
-  MdTableRestaurant,
-} from "react-icons/md";
-import { RiDashboardFill, RiUserSettingsFill } from "react-icons/ri";
+import { MdInventory2, MdMenuBook } from "react-icons/md";
+import { RiDashboardFill } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { StyledSider } from "../../styled/worker";
 
@@ -38,64 +33,82 @@ const WorkerSidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
   const menuItems = [
     {
       key: "dashboard",
-      label: "Manage Dashboard",
+      label: "Dashboard",
       icon: <RiDashboardFill size={25} />,
-      link: "/Worker/Dashboard",
+      children: [
+        {
+          key: "overview",
+          label: "Overview",
+          link: "/Worker/Dashboard",
+        },
+      ],
     },
     {
-      key: "menu",
-      label: "Manage Menu",
+      key: "menu_management",
+      label: "Menu Management",
       icon: <MdMenuBook size={25} />,
-      link: "/Worker/Manage/Menu",
+      children: [
+        {
+          key: "menu",
+          label: "Menu Items",
+          link: "/Worker/Manage/Menu",
+        },
+        {
+          key: "categories",
+          label: "Categories",
+          link: "/Worker/Manage/Categories",
+        },
+        {
+          key: "recipe",
+          label: "Ingredients",
+          link: "/Worker/Manage/Ingredients",
+        },
+      ],
     },
     {
-      key: "orders",
-      label: "Manage Orders",
-      icon: <FaReceipt size={25} />,
-      link: "/Worker/Manage/Order",
-    },
-    {
-      key: "reservation",
-      label: "Manage Reservation",
-      icon: <MdTableRestaurant size={25} />,
-      link: "/Worker/Manage/Reservation",
-    },
-
-    {
-      key: "categories",
-      label: "Manage Categories",
-      icon: <MdCategory size={25} />,
-      link: "/Worker/Manage/Categories",
-    },
-    {
-      key: "supply_categories",
-      label: "Manage Supply Categories",
-      icon: <RiUserSettingsFill size={25} />,
-      link: "/Worker/Manage/SupplyCategories",
-    },
-    {
-      key: "inventory",
-      label: "Manage Inventory",
+      key: "inventory_supplies",
+      label: "Inventory & Supplies",
       icon: <MdInventory2 size={25} />,
-      link: "/Worker/Manage/Inventory",
+      children: [
+        {
+          key: "inventory",
+          label: "Inventory & Supplies",
+          link: "/Worker/Manage/Inventory",
+        },
+        {
+          key: "supply_categories",
+          label: "Supply Categories",
+          link: "/Worker/Manage/SupplyCategories",
+        },
+        {
+          key: "supply",
+          label: "Supply",
+          link: "/Worker/Manage/Supply",
+        },
+      ],
     },
     {
-      key: "supply",
-      label: "Manage Supply",
-      icon: <RiUserSettingsFill size={25} />,
-      link: "/Worker/Manage/Supply",
+      key: "orders_reservations",
+      label: "Orders & Reservations",
+      icon: <FaReceipt size={25} />,
+      children: [
+        {
+          key: "orders",
+          label: "Orders",
+          link: "/Worker/Manage/Order",
+        },
+        {
+          key: "reservation",
+          label: "Reservation",
+          link: "/Worker/Manage/Reservation",
+        },
+      ],
     },
     {
       key: "chats",
       label: "Manage Chats",
       icon: <IoChatboxSharp size={25} />,
       link: "/Worker/Manage/Chats",
-    },
-    {
-      key: "recipe",
-      label: "Manage Ingredients",
-      icon: <MdTableRestaurant size={25} />,
-      link: "/Worker/Manage/Ingredients",
     },
   ];
 
@@ -117,7 +130,7 @@ const WorkerSidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
               className="w-12 rounded-full z-50 border"
               alt="Logo"
             />
-            <p className="font-bold text-[#fa8c16]">JGAA Restaurant</p>
+            <p className="font-bold text-[#fa8c16]">JGAA Food & Drinks</p>
           </div>
         )}
       </div>
@@ -127,23 +140,37 @@ const WorkerSidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
         <Menu
           theme="light"
           mode="inline"
+          defaultOpenKeys={["dashboard"]}
           defaultSelectedKeys={[
-            menuItems.find((item) => item.link === window.location.pathname)
-              ?.key || "dashboard",
+            menuItems
+              .flatMap((item) => item.children || [item])
+              .find((child) => child.link === window.location.pathname)?.key ||
+              "overview",
           ]}
           onClick={({ key }) => {
-            const found = menuItems.find((item) => item.key === key);
-            if (found) navigate(found.link);
+            // Search both parent and child items
+            const found =
+              menuItems.find((item) => item.key === key && item.link) ||
+              menuItems
+                .flatMap((group) => group.children || [])
+                .find((child) => child.key === key);
+
+            if (found && found.link) navigate(found.link);
           }}
-          items={menuItems.map((item) => ({
-            key: item.key,
-            icon: item.icon,
-            label: item.label,
+          items={menuItems.map((group) => ({
+            key: group.key,
+            icon: group.icon,
+            label: group.label,
+            children: group.children
+              ? group.children.map((child) => ({
+                  key: child.key,
+                  label: child.label,
+                }))
+              : undefined, // ✅ Allows single (non-dropdown) items to work
           }))}
         />
       </div>
 
-      {/* Footer */}
       {/* Footer */}
       {!collapsed && (
         <div className="footer-container">

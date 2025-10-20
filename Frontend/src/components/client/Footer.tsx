@@ -1,17 +1,14 @@
 import React from "react";
-import {
-  FaFacebookF,
-  FaInstagram,
-  FaLinkedinIn,
-  FaTwitter,
-} from "react-icons/fa";
+import { FaFacebookF, FaInstagram, FaTiktok } from "react-icons/fa";
 
 const Footer: React.FC = () => {
   const socialLinks = [
-    { icon: FaTwitter, link: "#" },
-    { icon: FaFacebookF, link: "#" },
-    { icon: FaInstagram, link: "#" },
-    { icon: FaLinkedinIn, link: "#" },
+    { icon: FaFacebookF, link: "https://www.facebook.com/JgaaFoodDrinks" },
+    {
+      icon: FaInstagram,
+      link: "https://www.instagram.com/jgaa_foodanddrinks/",
+    },
+    { icon: FaTiktok, link: "https://www.tiktok.com/@jgaa_foodanddrinks" },
   ];
 
   return (
@@ -33,14 +30,15 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Social Icons */}
+          {/* Social Icons */}
           <div className="flex flex-1 justify-center md:justify-end space-x-4">
             {socialLinks.map((item, i) => (
               <a
                 key={i}
                 href={item.link}
-                className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-600 bg-gray-800 hover:bg-yellow-500 hover:text-gray-900 transition transform hover:scale-110"
+                className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-600 bg-gray-800 text-yellow-500 hover:bg-yellow-500 hover:text-gray-900 transition transform hover:scale-110"
               >
-                <item.icon className="text-yellow-500" />
+                <item.icon className="text-inherit" />
               </a>
             ))}
           </div>

@@ -41,8 +41,8 @@ const Faqs: React.FC = () => {
                 key="1"
               >
                 <p className="text-gray-700 text-base">
-                  We’re open from <strong>3:00 PM to 1:00 AM</strong>, Monday to
-                  Sunday.
+                  Sawasdee and good day! 🌞 We’re open daily from{" "}
+                  <strong>3:00 PM to 1:00 AM</strong>, Monday to Sunday.
                 </p>
               </Panel>
               <Panel
@@ -57,17 +57,28 @@ const Faqs: React.FC = () => {
                   Yes! You can reserve a table online.
                 </p>
               </Panel>
-
               <Panel
                 header={
                   <span className="text-lg font-semibold">
-                    Are there vegetarian or vegan options?
+                    Can I see a menu?
                   </span>
+                }
+                key="3"
+              >
+                <p className="text-gray-700 text-base">
+                  Sawasdee! Good day! 🙂 Here’s our menu — just click the link
+                  below to view all our delicious options: 👉 [Menu Link Here]
+                </p>
+              </Panel>
+              <Panel
+                header={
+                  <span className="text-lg font-semibold">Do you deliver?</span>
                 }
                 key="4"
               >
                 <p className="text-gray-700 text-base">
-                  Yes, we have a wide selection of vegetarian and vegan dishes.
+                  Sawasdee! 😊 Yes, we deliver via GrabFood. Just open the app,
+                  search “JGAA Food & Drinks”, and place your order.
                 </p>
               </Panel>
               <Panel

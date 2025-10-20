@@ -255,7 +255,7 @@ export const ClientHeader = () => {
                 onClick={(e) => e.preventDefault()} // prevent navigation, only open dropdown
                 className="hover:text-orange-600 transition-colors"
               >
-                Shop now
+                Order now
               </Link>
             </Dropdown>
 

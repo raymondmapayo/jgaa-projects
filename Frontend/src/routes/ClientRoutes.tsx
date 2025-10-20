@@ -14,6 +14,15 @@ export const ClientRoutes = [
     component: lazy(() => import("../pages/client/LandingPage")),
   },
   {
+    path: "/close",
+    component: lazy(() => import("../pages/client/ReservationClose")),
+  },
+  {
+    path: "/dis",
+    component: lazy(() => import("../pages/worker/ReservationDisableEnable")),
+  },
+
+  {
     path: "/Menus",
     component: lazy(() => import("../pages/client/Menus")),
   },

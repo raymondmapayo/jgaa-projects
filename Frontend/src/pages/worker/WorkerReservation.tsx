@@ -3,7 +3,17 @@ import {
   FilterOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import { Badge, Button, Dropdown, Input, Menu, Table, Tooltip } from "antd";
+import {
+  Badge,
+  Button,
+  Dropdown,
+  Input,
+  Menu,
+  message,
+  Switch,
+  Table,
+  Tooltip,
+} from "antd";
 import axios from "axios";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
@@ -93,6 +103,10 @@ const WorkerReservation = () => {
   const [currentReservation, setCurrentReservation] =
     useState<Reservation | null>(null);
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
+  // In WorkerReservation component
+  const [reservationEnabled, setReservationEnabled] = useState<boolean>(
+    localStorage.getItem("reservationEnabled") !== "false" // default true
+  );
 
   const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -113,6 +127,19 @@ const WorkerReservation = () => {
     };
     fetchData();
   }, []);
+
+  const handleToggleReservation = (checked: boolean) => {
+    setReservationEnabled(checked);
+    localStorage.setItem("reservationEnabled", checked ? "true" : "false");
+
+    if (checked) {
+      message.success("✅ Online reservations have been enabled.");
+    } else {
+      message.warning(
+        "🚫 Online reservations have been disabled. Customers will see a prompt message instead."
+      );
+    }
+  };
 
   const handleDeleteReservation = (reservation_id: number) => {
     const reservation = reservations.find(
@@ -226,6 +253,7 @@ const WorkerReservation = () => {
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        {/* 🔍 Search Input */}
         <Input
           placeholder="Search reservation"
           prefix={<SearchOutlined />}
@@ -233,17 +261,33 @@ const WorkerReservation = () => {
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
         />
-        <Dropdown
-          overlay={
-            <Menu>
-              <Menu.Item key="1">Sort by Date</Menu.Item>
-              <Menu.Item key="2">Sort by Status</Menu.Item>
-            </Menu>
-          }
-          trigger={["click"]}
-        >
-          <Button icon={<FilterOutlined />}>Sort</Button>
-        </Dropdown>
+
+        {/* ✅ Right Controls: Toggle + Sort */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-gray-700">
+              Online Reservation:
+            </span>
+            <Switch
+              checkedChildren="Enabled"
+              unCheckedChildren="Disabled"
+              checked={reservationEnabled}
+              onChange={handleToggleReservation}
+            />
+          </div>
+
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item key="1">Sort by Date</Menu.Item>
+                <Menu.Item key="2">Sort by Status</Menu.Item>
+              </Menu>
+            }
+            trigger={["click"]}
+          >
+            <Button icon={<FilterOutlined />}>Sort</Button>
+          </Dropdown>
+        </div>
       </div>
 
       <StyledTable
