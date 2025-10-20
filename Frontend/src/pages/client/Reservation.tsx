@@ -80,37 +80,29 @@ const Reservation = () => {
     }
   }, [isAuthenticated]);
 
-  // ✅ Automatically check open/close time using dayjs
+  // ✅ Automatically check open/close time using dayjs (no backend reset)
   useEffect(() => {
-    const checkReservationTime = async () => {
+    const checkReservationTime = () => {
       const now = dayjs().tz("Asia/Manila");
       const hour = now.hour();
-      const minute = now.minute();
 
       // ✅ OPEN: 8:00 AM → 12:59 AM (next day)
       // ❌ CLOSED: 1:00 AM → 7:59 AM
       if (hour >= 8 || hour < 1) {
-        setIsReservationOpen(true);
+        setIsReservationOpen(true); // show reservation UI
       } else {
-        setIsReservationOpen(false);
+        setIsReservationOpen(false); // show ReservationClose UI
       }
 
-      // ✅ Auto reset tables every 8:00 AM exactly
-      if (hour === 8 && minute === 0) {
-        try {
-          await axios.post(`${apiUrl}/complete_reservations`);
-          console.log("✅ Tables reset to available at 8:00 AM");
-        } catch (error) {
-          console.error("❌ Error resetting tables:", error);
-        }
-      }
       setLoading(false); // ✅ hide loading after check
     };
 
     checkReservationTime();
+
+    // Recheck every minute in case user leaves the page open
     const interval = setInterval(checkReservationTime, 60000);
     return () => clearInterval(interval);
-  }, [apiUrl]);
+  }, []);
 
   const fetchReservedTables = async () => {
     try {

@@ -2508,74 +2508,30 @@ app.post("/add_reservation/:user_id", (req, res) => {
   });
 });
 
-app.post("/complete_reservations", (req, res) => {
-  // Reset table_status for all tables automatically
-  const resetTables = `
-    UPDATE reservation_tbl
-    SET table_status = 'Available'
-  `;
-
-  db.query(resetTables, (err) => {
-    if (err) {
-      console.error("Error resetting table_status:", err);
-      return res.status(500).json({ error: "Error resetting table_status" });
-    }
-
-    // Optionally, you can also complete reservation activities automatically
-    const resetActivities = `
-      UPDATE reservation_activity_tbl
-      SET status = 'Completed'
+// AUTO-CLOSE TABLES at 1:00 AM (Manila Time)
+cron.schedule(
+  "0 1 * * *",
+  () => {
+    const completeReservations = `
+      UPDATE reservation_tbl
+      SET table_status = 'Completed'
+      WHERE table_status = 'Reserved'
     `;
-    db.query(resetActivities, (err2) => {
-      if (err2) {
-        console.error("Error resetting activities:", err2);
-        return res
-          .status(500)
-          .json({ error: "Error completing reservation activities" });
+
+    db.query(completeReservations, (err) => {
+      if (err) {
+        console.error("❌ Error updating table_status:", err);
+      } else {
+        console.log(
+          "✅ All Reserved tables marked as Completed at 1 AM (Manila time)."
+        );
       }
-
-      res.status(200).json({
-        message: "Tables and activities reset successfully.",
-      });
     });
-  });
-});
-
-cron.schedule("0 8 * * *", () => {
-  const resetTables = `UPDATE reservation_tbl SET table_status = 'Available'`;
-  const resetActivities = `UPDATE reservation_activity_tbl SET status = 'Completed'`;
-
-  db.query(resetTables, (err) => {
-    if (err) return console.error("❌ Error resetting table_status:", err);
-
-    db.query(resetActivities, (err2) => {
-      if (err2) return console.error("❌ Error completing activities:", err2);
-
-      console.log(
-        "✅ Tables reset to 'Available' and activities completed at 8 AM."
-      );
-    });
-  });
-});
-
-// AUTO-CLOSE PENDING RESERVATIONS at 1:00 AM
-cron.schedule("0 1 * * *", () => {
-  const completeReservations = `UPDATE reservation_tbl SET table_status = 'Completed' WHERE status != 'Completed'`;
-  const completeActivities = `UPDATE reservation_activity_tbl SET status = 'Completed' WHERE status != 'Completed'`;
-
-  db.query(completeReservations, (err) => {
-    if (err) console.error("❌ Error completing reservations:", err);
-    else {
-      db.query(completeActivities, (err2) => {
-        if (err2) console.error("❌ Error completing activities:", err2);
-        else
-          console.log(
-            "✅ All pending reservations and activities completed at 1 AM."
-          );
-      });
-    }
-  });
-});
+  },
+  {
+    timezone: "Asia/Manila", // ✅ ensures it runs at correct PH time
+  }
+);
 
 // ✅ Get reservation status
 // Get reservation status
