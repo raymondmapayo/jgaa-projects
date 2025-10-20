@@ -1,4 +1,4 @@
-import { notification } from "antd";
+import { notification, Spin } from "antd";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -32,6 +32,7 @@ const Reservation = () => {
   const [reservedTables, setReservedTables] = useState<string[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isReservationOpen, setIsReservationOpen] = useState<boolean>(true); // ✅ added
+  const [loading, setLoading] = useState<boolean>(true); // ✅ Loading screen state
   const apiUrl = import.meta.env.VITE_API_URL;
 
   // 🔹 Sync with worker toggle
@@ -45,9 +46,10 @@ const Reservation = () => {
       } catch (error) {
         console.error("Error fetching reservation status:", error);
         setIsWorkerEnabled(true); // default to true
+      } finally {
+        setLoading(false); // ✅ hide loading after fetch
       }
     };
-
     fetchReservationStatus();
 
     // Optional: refresh every 10s
@@ -102,6 +104,7 @@ const Reservation = () => {
           console.error("❌ Error resetting tables:", error);
         }
       }
+      setLoading(false); // ✅ hide loading after check
     };
 
     checkReservationTime();
@@ -276,6 +279,18 @@ const Reservation = () => {
     { reservation_id: 8, tableName: "8", capacity: 2, img: "/Table-8.png" },
     { reservation_id: 9, tableName: "9", capacity: 2, img: "/Table-9.png" },
   ];
+
+  // ✅ Loading screen
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-[#1f1f1f]">
+        <Spin size="large" />
+        <p className="mt-4 text-gray-600 dark:text-gray-300 font-core">
+          Checking reservation status...
+        </p>
+      </div>
+    );
+  }
 
   // ✅ Show close message when outside operating hours
   if (!isReservationOpen) {
