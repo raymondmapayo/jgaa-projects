@@ -36,22 +36,24 @@ const Reservation = () => {
 
   // 🔹 Sync with worker toggle
 
+  // 🔹 Sync with worker toggle (via backend)
   useEffect(() => {
-    // Read the current state from localStorage
-    const stored = localStorage.getItem("reservationEnabled");
-    setIsWorkerEnabled(stored ? stored === "true" : false); // default to false if not set
-
-    // Listen for changes in localStorage (in case toggle is changed in another tab)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "reservationEnabled") {
-        setIsWorkerEnabled(e.newValue === "true");
+    const fetchReservationStatus = async () => {
+      try {
+        const res = await axios.get(`${apiUrl}/get_reservation_status`);
+        setIsWorkerEnabled(res.data.reservation_enabled === 1);
+      } catch (error) {
+        console.error("Error fetching reservation status:", error);
+        setIsWorkerEnabled(true); // default to true
       }
     };
 
-    window.addEventListener("storage", handleStorageChange);
+    fetchReservationStatus();
 
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+    // Optional: refresh every 10s
+    const interval = setInterval(fetchReservationStatus, 10000);
+    return () => clearInterval(interval);
+  }, [apiUrl]);
 
   useEffect(() => {
     const storedEmail = sessionStorage.getItem("email");

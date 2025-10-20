@@ -2577,6 +2577,31 @@ cron.schedule("0 1 * * *", () => {
   });
 });
 
+// ✅ Get reservation status
+// Get reservation status
+app.get("/get_reservation_status", (req, res) => {
+  db.query(
+    "SELECT reservation_enabled FROM reservation_settings WHERE id = 1",
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(result[0]);
+    }
+  );
+});
+
+// Update reservation status
+app.put("/update_reservation_status", (req, res) => {
+  const { reservation_enabled } = req.body;
+  db.query(
+    "UPDATE reservation_settings SET reservation_enabled = ? WHERE id = 1",
+    [reservation_enabled],
+    (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true });
+    }
+  );
+});
+
 // DELETE reservation and related reservation_activity records
 app.delete("/delete_reservation/:user_id/:reservation_id", (req, res) => {
   const { user_id, reservation_id } = req.params;

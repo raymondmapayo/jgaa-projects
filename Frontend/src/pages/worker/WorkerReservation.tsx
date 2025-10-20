@@ -104,9 +104,7 @@ const WorkerReservation = () => {
     useState<Reservation | null>(null);
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   // In WorkerReservation component
-  const [reservationEnabled, setReservationEnabled] = useState<boolean>(
-    localStorage.getItem("reservationEnabled") !== "false" // default true
-  );
+  const [reservationEnabled, setReservationEnabled] = useState<boolean>(true);
 
   const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -128,16 +126,22 @@ const WorkerReservation = () => {
     fetchData();
   }, []);
 
-  const handleToggleReservation = (checked: boolean) => {
-    setReservationEnabled(checked);
-    localStorage.setItem("reservationEnabled", checked ? "true" : "false");
+  // ✅ Toggle reservation status
+  const handleToggleReservation = async (checked: boolean) => {
+    try {
+      setReservationEnabled(checked);
+      await axios.put(`${apiUrl}/update_reservation_status`, {
+        reservation_enabled: checked ? 1 : 0,
+      });
 
-    if (checked) {
-      message.success("✅ Online reservations have been enabled.");
-    } else {
-      message.warning(
-        "🚫 Online reservations have been disabled. Customers will see a prompt message instead."
+      message.success(
+        checked
+          ? "✅ Online reservations have been enabled."
+          : "🚫 Online reservations have been disabled. Customers will see a message instead."
       );
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to update reservation status.");
     }
   };
 
