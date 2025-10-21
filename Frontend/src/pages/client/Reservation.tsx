@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import ReservationDisableEnable from "../worker/ReservationDisableEnable";
+import ReservationTermsConditionModal from "../WorkerModals/ReservationTermsConditionModal";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -28,6 +29,7 @@ const Reservation = () => {
   const [numOfPeople, setNumOfPeople] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
   const [isWorkerEnabled, setIsWorkerEnabled] = useState<boolean>(true);
+  const [isTermsModalVisible, setIsTermsModalVisible] = useState(false);
 
   const [reservedTables, setReservedTables] = useState<string[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -69,6 +71,14 @@ const Reservation = () => {
       setFullName(`${storedFname} ${storedLname}`);
       setPhone(storedPhone || "");
       setIsAuthenticated(true);
+
+      // ✅ Show ReservationTermsConditionModal if user hasn't accepted yet
+      const termsAccepted = sessionStorage.getItem(
+        "reservation_terms_accepted"
+      );
+      if (!termsAccepted) {
+        setIsTermsModalVisible(true); // <-- show modal
+      }
     }
 
     const today = new Date();
@@ -377,7 +387,10 @@ const Reservation = () => {
             );
           })}
         </motion.div>
-
+        <ReservationTermsConditionModal
+          visible={isTermsModalVisible}
+          onClose={() => setIsTermsModalVisible(false)}
+        />
         {/* Reservation Form */}
         <motion.form
           onSubmit={handleSubmit}
