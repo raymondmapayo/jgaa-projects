@@ -1,4 +1,3 @@
-// GCashButton.tsx
 import { UploadOutlined } from "@ant-design/icons";
 import {
   Button,
@@ -17,6 +16,7 @@ import React, { useState } from "react";
 
 interface GCashButtonProps {
   amount: number;
+  orderId: number;
   menuImg: string;
   orderQuantity: number;
   onPaymentSuccess: () => void;
@@ -26,22 +26,23 @@ interface GCashButtonProps {
 const GCashButton: React.FC<GCashButtonProps> = ({
   amount,
   menuImg,
+  orderId,
   orderQuantity,
   onPaymentSuccess,
   onPaymentError,
 }) => {
   const [step, setStep] = useState<"qr" | "form">("qr");
-  const [submitting, setSubmitting] = useState(false); // prevent double submit
+  const [submitting, setSubmitting] = useState(false);
   const userId = sessionStorage.getItem("user_id");
   const [form] = Form.useForm();
   const apiUrl = import.meta.env.VITE_API_URL;
+
   const handleSubmit = async (values: any) => {
     if (submitting) return;
     setSubmitting(true);
 
     try {
       const formData = new FormData();
-
       formData.append("amount", String(amount));
       formData.append("description", "Payment for Order");
       formData.append("remarks", "Payment for order");
@@ -56,21 +57,18 @@ const GCashButton: React.FC<GCashButtonProps> = ({
       formData.append("gcash_number", values.gcash || "");
       formData.append("payment_date", dayjs(values.date).format("YYYY-MM-DD"));
       formData.append("payment_time", dayjs(values.time).format("HH:mm:ss"));
+      formData.append("order_id", String(orderId));
 
-      // ✅ Append the actual proof image file if provided
       const proofFile = values.photo?.[0]?.originFileObj;
-      if (proofFile) {
-        formData.append("proof_image", proofFile);
-      }
+      if (proofFile) formData.append("proof_image", proofFile);
 
-      // Save GCash transaction (manual payment, no transaction_id)
       await axios.post(`${apiUrl}/gcash_transaction`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      // Save GCash payment info (manual)
       await axios.post(`${apiUrl}/gcash_payment`, {
         user_id: userId,
+        order_id: orderId,
         amount_paid: amount,
         payment_method: "GCash",
         payment_status: "pending",
@@ -120,7 +118,6 @@ const GCashButton: React.FC<GCashButtonProps> = ({
                 />
               </Form.Item>
             </Col>
-
             <Col span={12}>
               <Form.Item
                 name="reference"
@@ -136,21 +133,12 @@ const GCashButton: React.FC<GCashButtonProps> = ({
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item
-                name="date"
-                label="Date"
-                rules={[{ required: true, message: "Please select date" }]}
-              >
+              <Form.Item name="date" label="Date" rules={[{ required: true }]}>
                 <DatePicker className="w-full" />
               </Form.Item>
             </Col>
-
             <Col span={12}>
-              <Form.Item
-                name="time"
-                label="Time"
-                rules={[{ required: true, message: "Please select time" }]}
-              >
+              <Form.Item name="time" label="Time" rules={[{ required: true }]}>
                 <TimePicker className="w-full" format="HH:mm" />
               </Form.Item>
             </Col>
@@ -168,7 +156,6 @@ const GCashButton: React.FC<GCashButtonProps> = ({
                 <Input placeholder="09xxxxxxxxx" className="w-full" />
               </Form.Item>
             </Col>
-
             <Col span={12}>
               <Form.Item
                 name="photo"

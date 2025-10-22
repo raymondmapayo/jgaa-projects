@@ -26,6 +26,7 @@ const Cart = () => {
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false); // Order details modal visibility
   const [isBillingCompleted, setIsBillingCompleted] = useState(true); // Check if billing details are complete
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [localFinalTotal, setLocalFinalTotal] = useState(0); // add at the top of your component
   // State to control the visibility of BillingDetailsModal
   const [isBillingModalVisible, setBillingModalVisible] = useState(false);
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -145,6 +146,14 @@ const Cart = () => {
     );
 
     setCheckoutItems(checkoutData);
+
+    // ✅ Calculate and store the local total for the modal
+    const localTotal = checkoutData.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    setLocalFinalTotal(localTotal);
+
     setIsModalVisible(true); // Show confirmation modal with cart details
   };
 
@@ -342,11 +351,10 @@ const Cart = () => {
         onContinue={handleContinue}
       />
 
-      {/* Order Details Modal */}
       <OrderDetailsModal
         visible={isOrderModalVisible}
         checkoutItems={checkoutItems}
-        finalTotal={finalTotal}
+        finalTotal={localFinalTotal} // use local total instead of live cart total
         onCancel={handleOrderModalClose}
       />
 

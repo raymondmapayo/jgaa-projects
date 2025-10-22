@@ -1,10 +1,8 @@
 // OrderDetailsModal.tsx
-import { DotLottieReact } from "@lottiefiles/dotlottie-react"; // Import Lottie component
 import { message, Modal, Spin } from "antd";
 import axios from "axios";
 import React, { useState } from "react";
 import GCashButton from "../animation/GCashButton";
-import PayPalButton from "../animation/PayPalButton"; // Import PayPalButton component
 import useStore from "../zustand/store/store";
 
 interface OrderDetailsModalProps {
@@ -20,20 +18,44 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   finalTotal,
   onCancel,
 }) => {
-  const [loading, setLoading] = useState(false); // State for loading spinner
-  const [showPayPal, setShowPayPal] = useState(false); // State for showing PayPal button
+  const [loading, setLoading] = useState(false);
+  const [showGCash, setShowGCash] = useState(false);
+  const [orderId, setOrderId] = useState<number | null>(null);
+
   const client = useStore((state) => state.client) || {};
   const userId = sessionStorage.getItem("user_id");
-  const [showGCash, setShowGCash] = useState(false); // State for showing GCash button
   const apiUrl = import.meta.env.VITE_API_URL;
-  const handlePaymentSuccess = async (
-    paymentMethod: "PayPal" | "GCash",
-    transactionId?: string
-  ) => {
-    setLoading(true);
 
+  // Helper: create order only once
+  const createOrder = async (paymentMethod: "GCash") => {
+    if (orderId) return orderId; // Already created
+
+    const data = checkoutItems.map((item) => ({
+      user_id: userId,
+      item_name: item.item_name,
+      quantity: item.quantity,
+      price: item.price,
+      menu_img: item.menu_img,
+      final_total: item.price * item.quantity,
+      categories_name: item.categories_name || "Uncategorized",
+      size: item.size || "Normal size",
+    }));
+
+    const response = await axios.post(`${apiUrl}/create_order/${userId}`, {
+      orderData: data,
+      payment_method: paymentMethod,
+    });
+
+    const createdOrderId = response.data.orderId;
+    if (!createdOrderId) throw new Error("Failed to create order");
+
+    setOrderId(createdOrderId);
+    return createdOrderId;
+  };
+
+  const handlePaymentSuccess = async () => {
+    setLoading(true);
     try {
-      // Build order item data
       const data = checkoutItems.map((item) => ({
         user_id: userId,
         item_name: item.item_name,
@@ -45,21 +67,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         size: item.size || "Normal size",
       }));
 
-      // Step 1: Create order with payment_method (backend decides pending vs paid)
-      const orderResponse = await axios.post(
-        `${apiUrl}/create_order/${userId}`,
-        { orderData: data, payment_method: paymentMethod }
-      );
+      const createdOrderId = await createOrder("GCash");
 
-      const orderId = orderResponse.data.orderId;
-
-      if (!orderId) {
-        throw new Error("Failed to create order.");
-      }
-
-      // Step 2: Add items to the order
       const orderItems = data.map((item) => ({
-        order_id: orderId,
+        order_id: createdOrderId,
         user_id: userId,
         item_name: item.item_name,
         quantity: item.quantity,
@@ -74,92 +85,52 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         orderItems,
       });
 
-      // Step 3: Record activity
-      const activityData = {
+      await axios.post(`${apiUrl}/activity_user/${userId}`, {
         user_id: userId,
         activity_date: new Date(),
-        order_id: orderId,
-      };
-      await axios.post(`${apiUrl}/activity_user/${userId}`, activityData);
-
-      // Step 4: Remove items from the cart
-      await axios.post(`${apiUrl}/remove_from_cart/${userId}`, {
-        items: data,
+        order_id: createdOrderId,
       });
 
-      // Step 5: Only update payment status (and trigger inventory deduction) for PayPal.
+      await axios.post(`${apiUrl}/remove_from_cart/${userId}`, { items: data });
 
-      if (paymentMethod === "PayPal") {
-        await axios.post(`${apiUrl}/update_payment_status/${orderId}`, {
-          paymentStatus: "paid",
-        });
+      console.log(
+        "GCash: order created and left as pending. Waiting for verification."
+      );
 
-        // Step 6a: Store PayPal transaction & payment records
-        await axios.post(`${apiUrl}/paypal_transaction`, {
-          amount: finalTotal * 100,
-          description: "Payment for Order",
-          remarks: "Payment for order",
-          transaction_id: transactionId,
-          checkout_url: `https://www.paypal.com/checkoutnow?token=${transactionId}`,
-          payment_method: "PayPal",
-          user_id: userId,
-          order_quantity: checkoutItems.reduce(
-            (sum, item) => sum + item.quantity,
-            0
-          ),
-          menu_img: checkoutItems[0]?.menu_img || "",
-        });
-
-        await axios.post(`${apiUrl}/paypal_payment`, {
-          user_id: userId,
-          amount_paid: finalTotal * 100,
-          payment_method: "PayPal",
-          payment_status: "completed",
-          transaction_id: transactionId,
-        });
-      } else if (paymentMethod === "GCash") {
-        console.log(
-          "GCash: order created and left as pending. Waiting for verification."
-        );
-      }
-
-      // Step 7: Cleanup and success message
       onCancel();
       message.success("Order placed successfully and cart cleared!");
       useStore.setState({ client: { ...client, cart: [] } });
     } catch (error: any) {
-      // Improved error logging so you can see backend details in console
       console.error(
         "Payment process failed:",
         error?.response?.data || error?.message || error
       );
-      const serverMessage =
+      message.error(
         error?.response?.data?.error ||
-        error?.response?.data?.message ||
-        error?.message ||
-        "An error occurred while processing your payment. Please try again.";
-      message.error(serverMessage);
+          error?.response?.data?.message ||
+          error?.message ||
+          "An error occurred while processing your payment. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePaymentError = (error: any) => {
-    setLoading(false);
-    console.error(
-      "Payment error:",
-      error?.response?.data || error?.message || error
-    );
-    message.error("Payment failed, please try again.");
+  const handleShowGCash = async () => {
+    try {
+      await createOrder("GCash");
+      setShowGCash(true);
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to initiate GCash payment. Please try again.");
+    }
   };
-
-  const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || "";
 
   return (
     <Modal
       visible={visible}
       onCancel={onCancel}
-      footer={null} // Removed the Proceed button as PayPal will handle the transaction
+      footer={null}
       className="rounded-lg shadow-xl"
     >
       <div className="p-6 space-y-4 bg-white rounded-lg shadow-lg">
@@ -192,14 +163,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </li>
           ))}
         </ul>
-
         <p className="mt-4 text-lg font-semibold text-gray-800">
           Grand Total:{" "}
           <span className="text-xl text-red-700">₱{finalTotal}</span>
         </p>
       </div>
 
-      {/* Loading spinner */}
       {loading && (
         <div className="flex justify-center items-center mt-4">
           <Spin size="large" />
@@ -208,61 +177,27 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
       <div className="mt-6 p-6 bg-white rounded-lg shadow-lg">
         <h4 className="text-xl font-semibold text-gray-800 text-center">
-          Choose Your Payment Method
+          Payment Method
         </h4>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-10 justify-center">
-          <div
-            className="flex flex-col items-center p-6 border border-gray-200 rounded-xl shadow-lg hover:bg-gray-100 cursor-pointer"
-            onClick={() => setShowPayPal(true)} // Show PayPal button
-          >
-            <DotLottieReact
-              src="https://lottie.host/3e95f125-af06-4e93-9d08-a74ef93c0283/HC91pP4Qu8.lottie"
-              loop
-              autoplay
-              className="w-28 h-28 mb-4"
-            />
-            <p className="font-medium text-gray-700 text-lg">PayPal</p>
-          </div>
-          {/* GCash Card */}
-          <div
-            className="flex flex-col items-center p-6 border border-gray-200 rounded-xl shadow-lg hover:bg-gray-100 cursor-pointer"
-            onClick={() => setShowGCash(true)} // Show GCash button
-          >
-            <img
-              src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3b3AyZXdsZGRxN3g1emxzbHVjamhtb2ZzNG4xaGhpdGZyN2FkdWZicyZlcD12MV9naWZzX3JlbGF0ZWQmY3Q9Zw/MADYD4WF9g1b78RvE4/giphy.gif"
-              alt="GCash"
-              className="w-28 h-28 object-contain mb-4"
-            />
-            <p className="font-medium text-gray-700 text-lg">GCash</p>
-          </div>
+        <div
+          className="flex flex-col items-center p-6 border border-gray-200 rounded-xl shadow-lg hover:bg-gray-100 cursor-pointer mt-4"
+          onClick={handleShowGCash}
+        >
+          <img
+            src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3b3AyZXdsZGRxN3g1emxzbHVjamhtb2ZzNG4xaGhpdGZyN2FkdWZicyZlcD12MV9naWZzX3JlbGF0ZWQmY3Q9Zw/MADYD4WF9g1b78RvE4/giphy.gif"
+            alt="GCash"
+            className="w-28 h-28 object-contain mb-4"
+          />
+          <p className="font-medium text-gray-700 text-lg">GCash</p>
         </div>
       </div>
 
-      {/* PayPal Button */}
-      {showPayPal && (
-        <PayPalButton
-          amount={finalTotal}
-          clientId={clientId}
-          fundingSource="paypal"
-          onPaymentSuccess={(transactionId) =>
-            handlePaymentSuccess("PayPal", transactionId)
-          }
-          onPaymentError={handlePaymentError}
-          userId={userId || ""}
-          menuImg={checkoutItems[0]?.menu_img || ""}
-          orderQuantity={checkoutItems.reduce(
-            (sum, item) => sum + item.quantity,
-            0
-          )}
-        />
-      )}
-
-      {/* GCash Button */}
-      {showGCash && (
+      {showGCash && orderId && (
         <GCashButton
           amount={finalTotal}
-          onPaymentSuccess={() => handlePaymentSuccess("GCash")}
-          onPaymentError={handlePaymentError}
+          orderId={orderId}
+          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentError={(err) => console.error(err)}
           menuImg={checkoutItems[0]?.menu_img || ""}
           orderQuantity={checkoutItems.reduce(
             (sum, item) => sum + item.quantity,

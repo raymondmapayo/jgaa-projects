@@ -3715,61 +3715,60 @@ app.get("/fetch_reservation_activity/:user_id", (req, res) => {
   });
 });
 
-// Fetch reservation-related activity data for a user
-app.get("/fetch_my_purchase/:user_id", (req, res) => {
-  const userId = req.params.user_id; // Get user_id from the URL parameter
+// Fetch client-specific orders
+app.get("/fetch_my_purchase/:user_id", async (req, res) => {
+  const userId = req.params.user_id;
 
-  // Fetch orders from order_tbl
-  const fetchOrdersSql = `
-SELECT 
-  o.order_id,
-  o.order_status,
-  o.order_details,
-  o.payment_status,
-  COALESCE(t.payment_method, 'GCash') AS payment_method,  -- default fallback
-  t.status AS transaction_status
-FROM order_tbl o
-LEFT JOIN transaction_tbl t
-  ON t.user_id = o.user_id
-ORDER BY o.order_date DESC;
+  try {
+    const fetchOrdersSql = `
+      SELECT 
+        o.order_id,
+        o.order_status,
+        o.order_details,
+        o.payment_status,
+        COALESCE(t.payment_method, 'GCash') AS payment_method,
+        t.status AS transaction_status
+      FROM order_tbl o
+      LEFT JOIN transaction_tbl t
+        ON t.order_id = o.order_id
+      WHERE o.user_id = ?
+      ORDER BY o.order_date DESC;
+    `;
 
+    const orders = await new Promise((resolve, reject) => {
+      db.query(fetchOrdersSql, [userId], (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
 
-  `;
-
-  db.query(fetchOrdersSql, [userId], (orderErr, orders) => {
-    if (orderErr) {
-      console.error("Error fetching orders:", orderErr);
-      return res
-        .status(500)
-        .json({ error: "Internal Server Error", details: orderErr });
+    if (!orders || orders.length === 0) {
+      return res.status(200).json([]);
     }
 
-    // Check if no orders found, return an empty array instead of 404
-    if (orders.length === 0) {
-      return res.status(200).json([]); // Return an empty array if no orders found
-    }
+    const ordersWithItems = await Promise.all(
+      orders.map(async (order) => {
+        const fetchOrderItemsSql = `
+          SELECT 
+            oi.menu_img, 
+            oi.item_name, 
+            oi.price, 
+            oi.order_quantity, 
+            oi.final_total, 
+            m.categories_name
+          FROM orderitem_tbl oi
+          LEFT JOIN menu_tbl m ON oi.menu_id = m.menu_id
+          WHERE oi.order_id = ?
+        `;
 
-    // Fetch order items for each order from orderitem_tbl
-    const orderDetails = [];
+        const items = await new Promise((resolve, reject) => {
+          db.query(fetchOrderItemsSql, [order.order_id], (err, results) => {
+            if (err) return reject(err);
+            resolve(results);
+          });
+        });
 
-    orders.forEach((order, index) => {
-      const fetchOrderItemsSql = `
-        SELECT oi.menu_img, oi.item_name, oi.price, oi.order_quantity, oi.final_total, m.categories_name
-        FROM orderitem_tbl oi
-        JOIN menu_tbl m ON oi.menu_id = m.menu_id
-        WHERE oi.order_id = ?
-      `;
-
-      db.query(fetchOrderItemsSql, [order.order_id], (itemErr, items) => {
-        if (itemErr) {
-          console.error("Error fetching order items:", itemErr);
-          return res
-            .status(500)
-            .json({ error: "Error fetching order items", details: itemErr });
-        }
-
-        // Add items to the order
-        orderDetails.push({
+        return {
           ...order,
           products: items.map((item) => ({
             item_name: item.item_name,
@@ -3777,17 +3776,19 @@ ORDER BY o.order_date DESC;
             price: item.price,
             order_quantity: item.order_quantity,
             final_total: item.final_total,
-            categories_name: item.categories_name, // Categories name from menu_tbl
+            categories_name: item.categories_name,
           })),
-        });
+        };
+      })
+    );
 
-        // Return data after all orders are processed
-        if (orderDetails.length === orders.length) {
-          return res.status(200).json(orderDetails);
-        }
-      });
-    });
-  });
+    return res.status(200).json(ordersWithItems);
+  } catch (err) {
+    console.error("Error fetching purchases:", err);
+    return res
+      .status(500)
+      .json({ error: "Internal Server Error", details: err.message });
+  }
 });
 
 //==========================  ORDER TRANSACT END  ============================
@@ -5209,6 +5210,95 @@ app.post("/paypal_transaction", async (req, res) => {
       .json({ error: "Error storing transaction", details: error });
   }
 });
+
+app.post("/paypal_transaction", async (req, res) => {
+  const {
+    amount,
+    description,
+    remarks,
+    transaction_id,
+    checkout_url,
+    payment_method,
+    user_id, // We get user_id from the request body
+  } = req.body;
+
+  try {
+    console.log(
+      "🟡 Received request to store transaction with transaction_id:",
+      transaction_id
+    );
+    console.log("🟡 user_id received from body:", user_id);
+
+    const queryOrderItems = `
+      SELECT menu_img, order_quantity
+      FROM orderitem_tbl
+      WHERE user_id = ?
+    `;
+
+    db.query(queryOrderItems, [user_id], (err, results) => {
+      if (err) {
+        console.error("❌ Error fetching order items:", err);
+        return res.status(500).json({ error: "Error fetching order items" });
+      }
+
+      console.log("✅ Fetched order items for user_id:", user_id);
+      console.log("📝 Order items found:", results);
+
+      if (results.length > 0) {
+        const { menu_img, order_quantity } = results[0];
+
+        console.log("📦 Found order details:", {
+          user_id,
+          order_quantity,
+          menu_img,
+        });
+
+        const queryTransaction = `
+          INSERT INTO transaction_tbl 
+            (amount, description, remarks, transaction_id, checkout_url, payment_method, status, user_id, order_quantity, menu_img)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        const values = [
+          amount,
+          description,
+          remarks,
+          transaction_id,
+          checkout_url,
+          payment_method,
+          "completed",
+          user_id,
+          order_quantity,
+          menu_img,
+        ];
+
+        db.query(queryTransaction, values, (err, result) => {
+          if (err) {
+            console.error("❌ Error inserting transaction:", err);
+            console.log("⚠️ Failed insert values:", values);
+            return res
+              .status(500)
+              .json({ error: "Error storing transaction", details: err });
+          }
+
+          console.log("✅ Transaction inserted successfully:", result);
+          res.status(200).json({
+            message: "Transaction stored successfully",
+            result,
+          });
+        });
+      } else {
+        console.error("❗ No order items found for user_id:", user_id);
+        return res.status(404).json({ error: "Order items not found" });
+      }
+    });
+  } catch (error) {
+    console.error("❌ Unexpected error storing transaction:", error);
+    res
+      .status(500)
+      .json({ error: "Error storing transaction", details: error });
+  }
+});
 app.post("/paypal_payment", async (req, res) => {
   const { user_id, amount_paid, payment_method, payment_status } = req.body;
 
@@ -5269,6 +5359,7 @@ app.post("/gcash_transaction", upload.single("proof_image"), (req, res) => {
       gcash_number,
       payment_date,
       payment_time,
+      order_id, // ✅ Added this field
     } = req.body;
 
     const proof_image = req.file ? req.file.filename : "no-image.png";
@@ -5281,8 +5372,8 @@ app.post("/gcash_transaction", upload.single("proof_image"), (req, res) => {
     const query = `
       INSERT INTO transaction_tbl
         (amount, description, remarks, transaction_id, checkout_url, payment_method, status, created_at, 
-         user_id, order_quantity, menu_img, reference_code, gcash_number, payment_date, payment_time, proof_image)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         user_id, order_quantity, menu_img, reference_code, gcash_number, payment_date, payment_time, proof_image, order_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)
     `;
 
     const values = [
@@ -5302,6 +5393,7 @@ app.post("/gcash_transaction", upload.single("proof_image"), (req, res) => {
       payment_date,
       payment_time,
       proof_image, // ✅ always stored in DB
+      order_id, // ✅ include this
     ];
 
     db.query(query, values, (err, result) => {
@@ -5325,44 +5417,52 @@ app.post("/gcash_transaction", upload.single("proof_image"), (req, res) => {
 app.post("/gcash_payment", async (req, res) => {
   const {
     user_id,
+    order_id, // ✅ Added this field
     amount_paid,
     payment_method = "GCash",
     payment_status = "pending",
   } = req.body;
 
-  // Validate input
-  if (!user_id || !amount_paid) {
-    console.log("Missing required fields:", req.body);
+  // ✅ Validate input
+  if (!user_id || !order_id || !amount_paid) {
+    console.log("❌ Missing required fields:", req.body);
     return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
+    // ✅ Updated query to include order_id
     const query = `
-      INSERT INTO payment_tbl (user_id, payment_date, amount_paid, payment_method, payment_status)
-      VALUES (?, NOW(), ?, ?, ?)
+      INSERT INTO payment_tbl (user_id, order_id, payment_date, amount_paid, payment_method, payment_status)
+      VALUES (?, ?, NOW(), ?, ?, ?)
     `;
 
-    const values = [user_id, amount_paid, payment_method, payment_status];
+    const values = [
+      user_id,
+      order_id,
+      amount_paid,
+      payment_method,
+      payment_status,
+    ];
 
     console.log("Query to be executed:", query);
     console.log("Values to be inserted:", values);
 
     db.query(query, values, (error, results) => {
       if (error) {
-        console.error("Error inserting GCash payment:", error);
+        console.error("❌ Error inserting GCash payment:", error);
         return res
           .status(500)
           .json({ error: "Error inserting payment into database" });
       }
 
-      console.log("GCash payment inserted successfully:", results);
+      console.log("✅ GCash payment inserted successfully:", results);
       return res.status(200).json({
         message: "GCash payment details inserted successfully",
         payment_id: results.insertId,
       });
     });
   } catch (error) {
-    console.error("Error inserting GCash payment:", error);
+    console.error("❌ Error inserting GCash payment:", error);
     return res
       .status(500)
       .json({ error: "Error inserting GCash payment details" });

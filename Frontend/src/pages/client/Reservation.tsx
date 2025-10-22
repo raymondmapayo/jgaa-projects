@@ -28,7 +28,7 @@ const Reservation = () => {
   const [reservationTime, setReservationTime] = useState<string>("");
   const [numOfPeople, setNumOfPeople] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
-  const [isWorkerEnabled, setIsWorkerEnabled] = useState<boolean>(true);
+  const [isWorkerEnabled, setIsWorkerEnabled] = useState<boolean>(false);
   const [isTermsModalVisible, setIsTermsModalVisible] = useState(false);
 
   const [reservedTables, setReservedTables] = useState<string[]>([]);

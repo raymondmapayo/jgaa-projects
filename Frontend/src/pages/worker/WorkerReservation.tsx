@@ -104,7 +104,7 @@ const WorkerReservation = () => {
     useState<Reservation | null>(null);
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   // In WorkerReservation component
-  const [reservationEnabled, setReservationEnabled] = useState<boolean>(true);
+  const [reservationEnabled, setReservationEnabled] = useState<boolean>(false);
 
   const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -130,6 +130,21 @@ const WorkerReservation = () => {
     const interval = setInterval(completePastReservations, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const fetchReservationStatus = async () => {
+      try {
+        const res = await axios.get(`${apiUrl}/get_reservation_status`);
+        const status = res.data?.reservation_enabled === 1;
+        setReservationEnabled(status);
+        console.log("🔁 Current reservation status:", status);
+      } catch (error) {
+        console.error("❌ Failed to fetch reservation status:", error);
+      }
+    };
+
+    fetchReservationStatus();
+  }, [apiUrl]);
 
   useEffect(() => {
     const fetchData = async () => {
